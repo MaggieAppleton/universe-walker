@@ -1,0 +1,858 @@
+<style>
+.bw, .bw * { box-sizing: border-box; }
+.bw { container-type: inline-size; }
+.bw [hidden] { display: none !important; }
+.bw-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.bw-label { font-size: var(--text-xs, 12px); color: var(--color-text-tertiary, #6b6b6b); }
+.bw-settings { gap: 10px 24px; }
+.bw-main { display: grid; gap: 12px; min-width: 0; }
+.bw-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(8px, 2.4cqi, 20px); }
+.bw-badge { display: flex; flex-direction: column; gap: 8px; min-width: 0; width: var(--screen-w, 100%); justify-self: center; }
+.bw-screen { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; image-rendering: crisp-edges; background: #10141c; }
+.bw-person { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.bw-name { font-weight: var(--font-weight-medium, 500); display: inline-flex; align-items: center; gap: 6px; }
+.bw-swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.bw-steps { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.bw-walk { gap: 8px 10px; }
+.bw-status { display: inline-flex; align-items: center; gap: 7px; font-weight: var(--font-weight-medium, 500); }
+.bw-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ea043; box-shadow: 0 0 0 3px rgba(46,160,67,.18); flex: none; }
+.bw-status[data-state="out"] .bw-dot { background: #d08a12; box-shadow: 0 0 0 3px rgba(208,138,18,.2); }
+.bw-status[data-state="wait"] .bw-dot { background: #3b78d8; box-shadow: 0 0 0 3px rgba(59,120,216,.2); }
+.bw-spacer { flex: 1 1 0; min-width: 0; }
+
+.bw-person { justify-content: space-between; }
+.bw-layout { min-width: 0; }
+@container (min-width: 760px) {
+  .bw .bw-layout { grid-template-columns: 168px minmax(0, 1fr); align-items: start; column-gap: 28px; }
+  .bw .bw-settings { flex-direction: column; align-items: stretch; gap: 20px; padding-top: 4px; }
+  .bw .bw-field { flex-direction: column; align-items: stretch; gap: 6px; }
+  .bw .bw-field .artifact-segmented { flex-direction: column; align-items: stretch; }
+  .bw .bw-field .artifact-button { justify-content: flex-start; }
+}
+
+@container (max-width: 440px) {
+  .bw-person { flex-direction: column; align-items: flex-start; }
+  .artifact-surface.bw-surface { padding: 8px; }
+}
+</style>
+<main class="artifact bw" id="bw" data-arrangement="scenic">
+<div class="artifact-stack bw-layout">
+  <div class="artifact-row bw-settings" id="settings" aria-label="Design settings">
+    <div class="bw-field"><span class="bw-label" id="lbl-version">Screen</span>
+      <div class="artifact-segmented" role="group" aria-labelledby="lbl-version" data-setting="version">
+        <button class="artifact-button" type="button" data-size="small" data-v="scenic" aria-pressed="false">Scenic journey</button>
+        <button class="artifact-button" type="button" data-size="small" data-v="map" aria-pressed="false">Trail map</button>
+        <button class="artifact-button" type="button" data-size="small" data-v="hybrid" aria-pressed="false">Count + trail</button>
+      </div>
+    </div>
+    <div class="bw-field"><span class="bw-label" id="lbl-sharing">Sharing</span>
+      <div class="artifact-segmented" role="group" aria-labelledby="lbl-sharing" data-setting="sharingMode">
+        <button class="artifact-button" type="button" data-size="small" data-v="automatic" aria-pressed="false">Automatic</button>
+        <button class="artifact-button" type="button" data-size="small" data-v="meetSync" aria-pressed="false">Meet and sync</button>
+      </div>
+    </div>
+    <div class="bw-field"><span class="bw-label" id="lbl-walkers">Walkers</span>
+      <div class="artifact-segmented" role="group" aria-labelledby="lbl-walkers" data-setting="walkers">
+        <button class="artifact-button" type="button" data-size="small" data-v="current" aria-pressed="false">Current</button>
+        <button class="artifact-button" type="button" data-size="small" data-v="outlined" aria-pressed="false">Outlined hikers</button>
+        <button class="artifact-button" type="button" data-size="small" data-v="backpack" aria-pressed="false">Backpackers</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bw-main">
+    <section class="artifact-surface bw-surface" aria-label="Badge screens">
+      <div class="bw-pair" id="pair"></div>
+    </section>
+    <div class="artifact-row bw-walk" id="walkbar" aria-label="Walk simulation">
+      <span class="bw-status" id="status" data-state="in" role="status" aria-live="polite"><span class="bw-dot" aria-hidden="true"></span><span id="statusText">In range</span></span>
+      <button class="artifact-button" type="button" data-variant="primary" id="move">Walk apart</button>
+      <button class="artifact-button" type="button" data-variant="primary" id="sync" hidden>Sync</button>
+      <button class="artifact-button" type="button" data-variant="outline" data-size="small" id="sample" hidden>Sample walk</button>
+      <span class="bw-spacer"></span>
+      <button class="artifact-button" type="button" data-variant="ghost" data-size="small" id="reset">Reset</button>
+    </div>
+  </div>
+</div>
+</main>
+<script>
+(() => {
+"use strict";
+const REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const q = hex => { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const R = Math.round(Math.round(r / 255 * 31) / 31 * 255), G = Math.round(Math.round(g / 255 * 63) / 63 * 255), B = Math.round(Math.round(b / 255 * 31) / 31 * 255);
+  return `rgb(${R},${G},${B})`; };
+const C = {};
+Object.entries({
+  ink: "#10141c", bar: "#141824", panel: "#262c3a", white: "#f2f4f8", muted: "#9aa4b4", dim: "#5c6678",
+  green: "#5ad466", amber: "#f2a33a", blue: "#6aa8ff", gold: "#ffd65c", red: "#e0503e",
+  s1: "#26285a", s2: "#43397a", s3: "#74508c", s4: "#b85f7e", s5: "#e7836a", s6: "#f5b26c",
+  sun: "#ffe0a0", mtn: "#55467f", mtn2: "#463a6c", sea: "#3f6fb2", sea2: "#8fb8ea", foam: "#d8e8fa",
+  g1: "#4f8d4a", g2: "#5ea152", g3: "#6db55c", g4: "#7cc566", tuft: "#3f7a3c", flowerA: "#f4e27a", flowerB: "#f08aa0",
+  path: "#e2c88c", pathEdge: "#b89660", pathDone: "#f3d692", foot: "#a8854f", pending: "#f2a33a",
+  wood: "#8b5a33", wood2: "#6a4024", woodText: "#fff2d8",
+  lhRed: "#d8423a", lhWhite: "#f6f2ea", lhDark: "#3a2a2a", lamp: "#ffe38a", beam: "#fff2b8",
+  hairA: "#6b3a22", hairB: "#2a2a34", skin: "#f0c8a0", jacketA: "#e0503e", jacketB: "#4a82e0", legs: "#2c3450",
+  ghost: "#e8eef6",
+  paper: "#ead9a8", paper2: "#e2cf98", grid: "#d9c48c", mapSea: "#7fb0dc", mapSea2: "#a6c9ea", sand: "#d8c07e",
+  tree: "#2f7a46", tree2: "#3f9256", trunk: "#6a4a2a", hill: "#9a7f62", snow: "#f6f6f0",
+  route: "#c8342c", remain: "#8b5a33", boxBg: "#fff6dc", boxInk: "#c8342c", compass: "#5a4630",
+  dusk1: "#2d2f62", dusk2: "#58428a", dusk3: "#b45f80", dusk4: "#ef9a6c",
+}).forEach(([k, v]) => { C[k] = q(v); });
+
+const GLYPHS = {
+  "0": [".###.","#...#","#...#","#...#","#...#","#...#",".###."],
+  "1": ["..#..",".##..","..#..","..#..","..#..","..#..",".###."],
+  "2": [".###.","#...#","....#","...#.","..#..",".#...","#####"],
+  "3": ["#####","...#.","..#..","...#.","....#","#...#",".###."],
+  "4": ["...#.","..##.",".#.#.","#..#.","#####","...#.","...#."],
+  "5": ["#####","#....","####.","....#","....#","#...#",".###."],
+  "6": ["..##.",".#...","#....","####.","#...#","#...#",".###."],
+  "7": ["#####","....#","...#.","..#..",".#...",".#...",".#..."],
+  "8": [".###.","#...#","#...#",".###.","#...#","#...#",".###."],
+  "9": [".###.","#...#","#...#",".####","....#","...#.",".##.."],
+  "A": [".###.","#...#","#...#","#####","#...#","#...#","#...#"],
+  "B": ["####.","#...#","#...#","####.","#...#","#...#","####."],
+  "C": [".###.","#...#","#....","#....","#....","#...#",".###."],
+  "D": ["####.","#...#","#...#","#...#","#...#","#...#","####."],
+  "E": ["#####","#....","#....","####.","#....","#....","#####"],
+  "F": ["#####","#....","#....","####.","#....","#....","#...."],
+  "G": [".###.","#...#","#....","#.###","#...#","#...#",".####"],
+  "H": ["#...#","#...#","#...#","#####","#...#","#...#","#...#"],
+  "I": [".###.","..#..","..#..","..#..","..#..","..#..",".###."],
+  "J": ["..###","...#.","...#.","...#.","...#.","#..#.",".##.."],
+  "K": ["#...#","#..#.","#.#..","##...","#.#..","#..#.","#...#"],
+  "L": ["#....","#....","#....","#....","#....","#....","#####"],
+  "M": ["#...#","##.##","#.#.#","#.#.#","#...#","#...#","#...#"],
+  "N": ["#...#","#...#","##..#","#.#.#","#..##","#...#","#...#"],
+  "O": [".###.","#...#","#...#","#...#","#...#","#...#",".###."],
+  "P": ["####.","#...#","#...#","####.","#....","#....","#...."],
+  "Q": [".###.","#...#","#...#","#...#","#.#.#","#..#.",".##.#"],
+  "R": ["####.","#...#","#...#","####.","#.#..","#..#.","#...#"],
+  "S": [".####","#....","#....",".###.","....#","....#","####."],
+  "T": ["#####","..#..","..#..","..#..","..#..","..#..","..#.."],
+  "U": ["#...#","#...#","#...#","#...#","#...#","#...#",".###."],
+  "V": ["#...#","#...#","#...#","#...#","#...#",".#.#.","..#.."],
+  "W": ["#...#","#...#","#...#","#.#.#","#.#.#","#.#.#",".#.#."],
+  "X": ["#...#","#...#",".#.#.","..#..",".#.#.","#...#","#...#"],
+  "Y": ["#...#","#...#",".#.#.","..#..","..#..","..#..","..#.."],
+  "Z": ["#####","....#","...#.","..#..",".#...","#....","#####"],
+  " ": ["...","...","...","...","...","...","..."],
+  ",": ["..","..","..","..",".#",".#","#."],
+  ".": [".",".",".",".",".",".","#"],
+  "!": ["#","#","#","#","#",".","#"],
+  ":": [".","#",".",".",".","#","."],
+  "'": ["#","#",".",".",".",".","."],
+  "+": [".....","..#..","..#..","#####","..#..","..#..","....."],
+  "-": ["...","...","...","###","...","...","..."],
+  "/": ["....#","....#","...#.","..#..",".#...","#....","#...."],
+  ">": ["#...",".#..","..#.","...#","..#.",".#..","#..."],
+  "<": ["...#","..#.",".#..","#...",".#..","..#.","...#"],
+  "?": [".###.","#...#","....#","...#.","..#..",".....","..#.."],
+  "*": [".....","..#..","#.#.#",".###.","#.#.#","..#..","....."],
+  "=": [".....",".....","#####",".....","#####",".....","....."],
+};
+
+const GOAL = 2000;
+const IDS = ["maggie", "martin"];
+const NAMES = { maggie: "Maggie", martin: "Martin" };
+const UPPER = { maggie: "MAGGIE", martin: "MARTIN" };
+const SWATCH = { maggie: "#e0503e", martin: "#4a82e0" };
+const BASE = { maggie: 600, martin: 600 };
+const SAMPLE_ADD = { maggie: 300, martin: 450 };
+const VERSIONS = ["scenic", "map", "hybrid"];
+const MODES = ["automatic", "meetSync"];
+const WALKERS = ["current", "outlined", "backpack"];
+const DEFAULTS = { version: "scenic", sharingMode: "automatic", walkers: "current" };
+const TOAST_MS = 2200;
+
+const host = window.chopinArtifact || {};
+const settings = { ...DEFAULTS };
+
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const now = () => performance.now();
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const partnerOf = id => (id === "maggie" ? "martin" : "maggie");
+const overflow = [];
+const stats = { frames: 0, draws: 0 };
+
+function freshWalk() {
+  const badge = () => ({ known: { ...BASE }, shared: { ...BASE }, shown: BASE.maggie + BASE.martin, anim: null, toast: null, stepUntil: 0 });
+  return { inRange: true, badges: { maggie: badge(), martin: badge() } };
+}
+let walk = freshWalk();
+
+const totalOf = id => { const k = walk.badges[id].known; return k.maggie + k.martin; };
+const sharedTotalOf = id => { const s = walk.badges[id].shared; return s.maggie + s.martin; };
+const localOf = id => walk.badges[id].known[id] - walk.badges[id].shared[id];
+const pendingExchange = () => IDS.some(id => IDS.some(w => walk.badges[id].known[w] !== walk.badges[partnerOf(id)].known[w]));
+const auto = () => settings.sharingMode === "automatic";
+
+function animateTo(id, delay) {
+  const b = walk.badges[id];
+  const to = sharedTotalOf(id);
+  if (b.shown === to) { b.anim = null; return; }
+  if (REDUCED) { b.shown = to; b.anim = null; return; }
+  b.anim = { start: now() + (delay || 0), dur: 650, from: b.shown, to };
+}
+
+function exchange(kind) {
+  const merged = {};
+  IDS.forEach(w => { merged[w] = Math.max(...IDS.map(id => walk.badges[id].known[w])); });
+  IDS.forEach(id => {
+    const b = walk.badges[id];
+    const p = partnerOf(id);
+    const gained = merged[p] - b.shared[p];
+    b.known = { ...merged };
+    b.shared = { ...merged };
+    animateTo(id, gained > 0 ? 150 : 0);
+    if (gained > 0) b.toast = { text: `+${fmt(gained)} FROM ${UPPER[p]}`, color: C.green, until: now() + TOAST_MS };
+    else if (kind === "sync") b.toast = { text: "ALREADY UP TO DATE", color: C.muted, until: now() + TOAST_MS };
+  });
+}
+
+function addSteps(id, n) {
+  const b = walk.badges[id];
+  b.known[id] += n;
+  b.stepUntil = now() + 900;
+  if (walk.inRange && auto()) exchange("live");
+}
+function toggleRange() {
+  walk.inRange = !walk.inRange;
+  IDS.forEach(id => { walk.badges[id].toast = null; });
+  if (walk.inRange && auto()) exchange("meet");
+}
+function syncNow() { if (walk.inRange && !auto()) exchange("sync"); }
+
+function applySetting(key, value) {
+  const allowed = { version: VERSIONS, sharingMode: MODES, walkers: WALKERS }[key] || null;
+  if (!allowed || !allowed.includes(value) || settings[key] === value) return false;
+  settings[key] = value;
+  if (key === "sharingMode") {
+    IDS.forEach(id => { walk.badges[id].toast = null; });
+    if (auto() && walk.inRange && pendingExchange()) exchange("meet");
+  }
+  return true;
+}
+function applySettings(values) {
+  const v = values || {};
+  const a = applySetting("version", v.version);
+  const b = applySetting("sharingMode", v.sharingMode);
+  const c = applySetting("walkers", v.walkers);
+  return a || b || c;
+}
+applySettings(host.settings);
+
+function applySample(s) {
+  if (!s || typeof s !== "object") return;
+  if (s.apart === true) walk.inRange = false;
+  IDS.forEach(id => {
+    const n = Number(s[id + "Local"]);
+    if (Number.isFinite(n) && n > 0) walk.badges[id].known[id] += n;
+  });
+  if (walk.inRange && auto() && pendingExchange()) { exchange("meet"); IDS.forEach(id => { const b = walk.badges[id]; b.anim = null; b.toast = null; b.shown = sharedTotalOf(id); }); }
+}
+
+/* ---------- pixel painter ---------- */
+function painter(ctx) {
+  const P = {
+    px(x, y, col) { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); },
+    rect(x, y, w, h, col) { if (w <= 0 || h <= 0) return; ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+    textWidth(str, s = 1) { let w = 0; for (const ch of str) { const g = GLYPHS[ch] || GLYPHS["?"]; w += (g[0].length + 1) * s; } return Math.max(0, w - s); },
+    text(str, x, y, s, col, maxRight = 160) {
+      const w = P.textWidth(str, s);
+      if (x < 0 || x + w > maxRight) overflow.push(`${settings.version}: "${str}" x=${Math.round(x)} w=${w}`);
+      ctx.fillStyle = col;
+      let cx = Math.round(x); const cy = Math.round(y);
+      for (const ch of str) {
+        const g = GLYPHS[ch] || GLYPHS["?"];
+        for (let r = 0; r < 7; r++) for (let c = 0; c < g[r].length; c++) if (g[r][c] === "#") ctx.fillRect(cx + c * s, cy + r * s, s, s);
+        cx += (g[0].length + 1) * s;
+      }
+      return w;
+    },
+    textC(str, cx, y, s, col) { return P.text(str, cx - Math.round(P.textWidth(str, s) / 2), y, s, col); },
+    textR(str, rx, y, s, col) { return P.text(str, rx - P.textWidth(str, s), y, s, col); },
+    disc(cx, cy, r, col) { for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * 0.6) P.px(cx + x, cy + y, col); },
+  };
+  return P;
+}
+
+/* ---------- shared sprites ---------- */
+const WALK = [
+  ["..##..", "..##..", ".####.", "#.##.#", "..##..", ".#..#.", ".#..#.", "#....#"],
+  ["..##..", "..##..", ".####.", ".####.", "..##..", "..##..", "..##..", ".#..#."],
+];
+function walkerColor(r, who) {
+  if (r === 0) return who === "maggie" ? C.hairA : C.hairB;
+  if (r === 1) return C.skin;
+  if (r < 5) return who === "maggie" ? C.jacketA : C.jacketB;
+  return C.legs;
+}
+function drawWalker(P, who, footX, footY, frame, ghost) {
+  const rows = WALK[frame];
+  const x0 = Math.round(footX - 3), y0 = Math.round(footY - 8);
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 6; c++) {
+    if (rows[r][c] !== "#") continue;
+    if (ghost) { if ((r + c) % 2 === 0) P.px(x0 + c, y0 + r, r < 2 ? C.ghost : walkerColor(r, who)); }
+    else P.px(x0 + c, y0 + r, walkerColor(r, who));
+  }
+}
+/* ---------- walker designs: outlined hikers and backpackers ---------- */
+const PERSON_PAL = {
+  maggie: { h: "#8a3c1c", j: "#f05a46", d: "#b8362a", c: "#8a3c1c", k: "#e0aa48", K: "#a8742a", r: "#f2e2b8", o: "#2a1418" },
+  martin: { h: "#3a2c28", j: "#4c8cf0", d: "#2a5ab8", c: "#1f3c80", k: "#6a9c44", K: "#3f6a2a", r: "#e8e0c8", o: "#121a34" },
+};
+const BODY_PAL = { s: "#fde4c8", e: "#20141a", p: "#2c3450", b: "#5a3820", w: "#f6f2ea" };
+const PAL = {};
+IDS.forEach(id => { PAL[id] = {}; Object.entries({ ...BODY_PAL, ...PERSON_PAL[id] }).forEach(([k, v]) => { PAL[id][k] = q(v); }); });
+const HIKER_HEAD = {
+  maggie: ["...hhhh..", "..hhhhhh.", ".hhhhsss.", "hh.hsses.", "h...sss.."],
+  martin: ["....w....", "...cccc..", "..cccccc.", "..hhsses.", "...hsss.."],
+};
+const HIKER_BODY = [
+  ["...jjjj..", "..jjjjjj.", "..djjjjs.", "...jjjj..", "...pppp..", "..pp..pp.", ".pp....pp", ".bb....bb"],
+  ["...jjjj..", "..jjjjjj.", "..djjjjs.", "...jjjj..", "...pppp..", "...pp.p..", "...pp.p..", "...bb.bb."],
+];
+const PACK_HEAD = {
+  maggie: [".......hh...", "......hhhh..", "....hhhhhhh.", "...hhhhhhhhh", "...hhssssshh", "...hsesssesh", "rrr.hssssss.", "rrr..ssss..."],
+  martin: ["............", ".....cccccc.", "....cccccccc", "...hcccccccc", "...hhsssssss", "...hsesssess", "rrr.hssssss.", "rrr..ssss..."],
+};
+const PACK_BODY = [
+  ["Kkkkjjjjjj..", "Kkkkjjjjjjs.", "Kkkkdjjjjj..", ".KK.pppppp..", "....pp..pp..", "...bbb..bbb."],
+  ["Kkkkjjjjjj..", "Kkkkjjjjjjs.", "Kkkkdjjjjj..", ".KK.pppppp..", ".....pp.pp..", "....bbb.bbb."],
+];
+const TOP = {
+  outlined: {
+    maggie: ["..hhh..", ".hhhhh.", "..hhh..", "jjjhjjj", "jjjhjjj", "sjjjjjs", ".jjjjj.", ".p...p."],
+    martin: ["..cwc..", ".ccccc.", "..hhh..", "jjjjjjj", "jjjjjjj", "sjjjjjs", ".jjjjj.", ".p...p."],
+  },
+  backpack: {
+    maggie: ["...hhh...", "..hhhhh..", "..hhhhh..", "jjjhhhjjj", "jjkkkkkjj", "sjkKKKkjs", ".jkkkkkj.", "..krrrk..", "..p...p.."],
+    martin: ["...ccc...", "..ccwcc..", "..ccccc..", "jjjhhhjjj", "jjkkkkkjj", "sjkKKKkjs", ".jkkkkkj.", "..krrrk..", "..p...p.."],
+  },
+};
+function compileSprite(rows) {
+  const h = rows.length + 2, w = Math.max(...rows.map(r => r.length)) + 2;
+  const at = (x, y) => { const r = rows[y - 1]; const ch = r && r[x - 1]; return ch && ch !== "." ? ch : null; };
+  const cells = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const ch = at(x, y);
+    if (ch) cells.push([x, y, ch]);
+    else if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) cells.push([x, y, "o"]);
+  }
+  return { w, h, cells };
+}
+const SPRITES = { outlined: { side: {}, top: {} }, backpack: { side: {}, top: {} } };
+IDS.forEach(id => {
+  SPRITES.outlined.side[id] = HIKER_BODY.map(body => compileSprite([...HIKER_HEAD[id], ...body]));
+  SPRITES.backpack.side[id] = PACK_BODY.map(body => compileSprite([...PACK_HEAD[id], ...body]));
+  SPRITES.outlined.top[id] = compileSprite(TOP.outlined[id]);
+  SPRITES.backpack.top[id] = compileSprite(TOP.backpack[id]);
+});
+function drawSprite(P, sp, who, cx, footY, ghost) {
+  const x0 = Math.round(cx - sp.w / 2), y0 = Math.round(footY) - sp.h + 1;
+  const pal = PAL[who];
+  for (const [x, y, ch] of sp.cells) {
+    if (ghost) {
+      if (ch === "o") P.px(x0 + x, y0 + y, pal.j);
+      else if ((x + y) % 2 === 0) P.px(x0 + x, y0 + y, pal[ch]);
+    } else P.px(x0 + x, y0 + y, pal[ch]);
+  }
+  return { x0, y0, x1: x0 + sp.w - 1, y1: y0 + sp.h - 1 };
+}
+/* figures: [{ who, x, y, frame, ghost }] with x = centre, y = feet (side) or centre (top) */
+function drawFigures(P, view, figures) {
+  const set = SPRITES[settings.walkers][view];
+  const placed = figures.map(f => {
+    const sp = view === "side" ? set[f.who][f.frame] : set[f.who];
+    const foot = view === "side" ? f.y : f.y + Math.floor(sp.h / 2);
+    const x0 = Math.round(f.x - sp.w / 2), y0 = Math.round(foot) - sp.h + 1;
+    return { f, sp, foot, x: f.x, box: { x0, y0, x1: x0 + sp.w - 1, y1: y0 + sp.h - 1 } };
+  });
+  const solid = placed.find(p => !p.f.ghost);
+  placed.filter(p => p.f.ghost && solid && overlaps(p.box, solid.box)).forEach(p => {
+    const shift = p.box.x1 - solid.box.x0 + 2;
+    p.x -= shift; p.box = { ...p.box, x0: p.box.x0 - shift, x1: p.box.x1 - shift };
+  });
+  return placed.sort((a, b) => a.f.y - b.f.y).map(p => ({ who: p.f.who, box: drawSprite(P, p.sp, p.f.who, p.x, p.foot, p.f.ghost) }));
+}
+function pairOffsets(view, who) {
+  const sp = view === "side" ? SPRITES[settings.walkers].side[who][0] : SPRITES[settings.walkers].top[who];
+  return (sp.w + 1) / 2;
+}
+const overlaps = (a, b) => a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1;
+function placeTag(P, label, color, bg, figs, anchor, bounds) {
+  const tw = P.textWidth(label);
+  const a = figs.find(f => f.who === anchor).box;
+  const mid = Math.round((a.y0 + a.y1) / 2) - 3;
+  const tries = [[a.x0 - tw - 5, mid], [a.x1 + 5, mid], [Math.round((a.x0 + a.x1 - tw) / 2), a.y0 - 11], [Math.round((a.x0 + a.x1 - tw) / 2), a.y1 + 4]];
+  for (const [lx, ly] of tries) {
+    const box = { x0: lx - 2, y0: ly - 2, x1: lx + tw + 1, y1: ly + 8 };
+    if (box.x0 < bounds.x0 || box.x1 > bounds.x1 || box.y0 < bounds.y0 || box.y1 > bounds.y1) continue;
+    if (figs.some(f => overlaps(box, { x0: f.box.x0, y0: f.box.y0, x1: f.box.x1, y1: f.box.y1 }))) continue;
+    P.rect(box.x0, box.y0, tw + 4, 11, bg);
+    P.text(label, lx, ly, 1, color);
+    return box;
+  }
+  return null;
+}
+function drawLighthouse(P, cx, baseY, h) {
+  const top = baseY - h;
+  for (let y = 0; y < h - 5; y++) {
+    const half = 2 + Math.floor((y / (h - 5)) * 1.6);
+    const band = Math.floor(y / 3) % 2 === 0;
+    P.rect(cx - half, baseY - 1 - y, half * 2 + 1, 1, band ? C.lhRed : C.lhWhite);
+  }
+  P.rect(cx - 3, top + 4, 7, 1, C.lhDark);
+  P.rect(cx - 2, top + 2, 5, 2, C.lamp);
+  P.rect(cx - 2, top + 1, 5, 1, C.lhDark);
+  P.rect(cx - 1, top, 3, 1, C.lhRed);
+  P.px(cx, top - 1, C.lhDark);
+}
+function drawBeam(P, cx, y, len) {
+  for (let i = 4; i < len; i++) if (i % 2 === 0 || i < 9) P.px(cx - i, y + Math.round(i * 0.08), C.beam);
+}
+const LINK_COLOR = { apart: "white", ready: "blue", together: "green" };
+function drawLink(P, x, y, state) {
+  const col = C[LINK_COLOR[state]];
+  P.rect(x, y, 2, 5, col); P.rect(x + 9, y, 2, 5, col);
+  if (state === "together") P.rect(x + 2, y + 2, 7, 1, col);
+  else if (state === "ready") { for (let i = 0; i < 3; i++) P.px(x + 3 + i * 2, y + 2, col); }
+  else { P.px(x + 3, y + 2, col); P.px(x + 7, y + 2, col); }
+}
+function bubble(P, text, color, cx, y) {
+  const w = P.textWidth(text) + 8;
+  const x = Math.round(cx - w / 2);
+  P.rect(x + 1, y, w - 2, 11, C.ink); P.rect(x, y + 1, w, 9, C.ink);
+  P.rect(x + 1, y, w - 2, 1, color); P.rect(x + 1, y + 10, w - 2, 1, color);
+  P.rect(x, y + 1, 1, 9, color); P.rect(x + w - 1, y + 1, 1, 9, color);
+  P.text(text, x + 4, y + 2, 1, color);
+}
+
+/* ---------- one display state, composed by every screen ---------- */
+function view(id) {
+  const b = walk.badges[id];
+  const t = now();
+  const sharedTotal = sharedTotalOf(id);
+  let shown = sharedTotal;
+  if (b.anim) {
+    const k = (t - b.anim.start) / b.anim.dur;
+    if (k < 0) shown = b.anim.from;
+    else if (k < 1) shown = Math.round(b.anim.from + (b.anim.to - b.anim.from) * (1 - Math.pow(1 - k, 3)));
+    else b.anim = null;
+  }
+  b.shown = shown;
+  const local = localOf(id);
+  const waiting = walk.inRange && !auto() && pendingExchange();
+  const link = !walk.inRange ? "apart" : waiting ? "ready" : "together";
+  const status = { apart: "OUT OF RANGE", ready: "PRESS SYNC", together: `WITH ${UPPER[partnerOf(id)]}` }[link];
+  const caption = local > 0 || !walk.inRange ? "LAST SHARED" : "SHARED STEPS";
+  const toast = b.toast && t < b.toast.until ? b.toast : null;
+  const frame = !REDUCED && t < b.stepUntil ? Math.floor(t / 150) % 2 : 1;
+  const mine = shown + local;
+  return { id, p: partnerOf(id), shown, local, sharedTotal, waiting, link, status, caption, toast, frame,
+    progress: Math.min(1, mine / GOAL), sharedProgress: Math.min(1, shown / GOAL), toGo: Math.max(0, GOAL - shown) };
+}
+const toGoText = v => (v.toGo > 0 ? `${fmt(v.toGo)} TO GOAL` : "GOAL REACHED!");
+const statusColor = v => C[LINK_COLOR[v.link]];
+function localLabel(P, v, room) {
+  const long = `+${fmt(v.local)} NEW STEPS`;
+  return P.textWidth(long) <= room ? long : `+${fmt(v.local)} NEW`;
+}
+
+const HEADER = 21;
+function header(P, v) {
+  P.rect(0, 0, 160, HEADER, C.bar);
+  P.rect(0, HEADER - 1, 160, 1, C.panel);
+  const w = P.text(fmt(v.shown), 3, 2, 1, C.white);
+  P.text(`/${fmt(GOAL)}`, 3 + w + 2, 2, 1, C.muted);
+  const sw = P.textWidth(v.status);
+  P.text(v.status, 157 - sw, 2, 1, statusColor(v));
+  drawLink(P, 157 - sw - 14, 3, v.link);
+  const cw = P.text(v.caption, 3, 11, 1, C.muted);
+  if (v.local > 0) { const label = localLabel(P, v, 157 - (3 + cw + 8)); P.textR(label, 157, 11, 1, C.pending); }
+}
+
+/* ---------- 1. scenic journey ---------- */
+const ROUTE_SCENIC = [[104, 121], [126, 108], [116, 98], [86, 92], [80, 84], [102, 77], [118, 72], [110, 66], [122, 62]];
+function catmull(pts, steps) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    for (let k = 0; k < steps; k++) {
+      const t = k / steps, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(a => 0.5 * (2 * p1[a] + (-p0[a] + p2[a]) * t + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (-p0[a] + 3 * p1[a] - 3 * p2[a] + p3[a]) * t3)));
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+function parametrise(pts, weight) {
+  const acc = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    acc.push(acc[i - 1] + d / (weight ? weight(pts[i]) : 1));
+  }
+  const L = acc[acc.length - 1];
+  return { pts, s: acc.map(a => a / L), at(s) {
+    const i = Math.max(1, this.s.findIndex(x => x >= s));
+    const a = this.s[i - 1], b = this.s[i], k = b > a ? (s - a) / (b - a) : 0;
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k];
+  } };
+}
+const depth = y => Math.max(0, Math.min(1, (y - 60) / 60));
+const SCENIC = parametrise(catmull(ROUTE_SCENIC, 24), p => 0.35 + depth(p[1]));
+const FOOTER_TOP = 108;
+const SCENIC_START = SCENIC.s[SCENIC.pts.findIndex(p => p[1] <= FOOTER_TOP - 2)];
+
+function drawScenic(P, v) {
+  const sky = [C.s1, C.s2, C.s3, C.s4, C.s5, C.s6];
+  const horizon = 62, top = HEADER, bh = (horizon - top) / sky.length;
+  sky.forEach((col, i) => P.rect(0, top + Math.floor(i * bh), 160, Math.ceil(bh) + 1, col));
+  for (let i = 1; i < sky.length; i++) { const y = top + Math.floor(i * bh) - 1; for (let x = i % 2; x < 160; x += 2) P.px(x, y, sky[i]); }
+  for (let k = 0; k < 14; k++) P.px(Math.floor(hash(k) * 160), top + 1 + Math.floor(hash(k + 40) * 10), hash(k + 9) < 0.3 ? C.sun : C.foam);
+  P.disc(34, 49, 7, C.sun);
+  for (let x = 0; x < 160; x++) {
+    const h = 8 + 7 * Math.sin(x * 0.045 + 0.4) + 4 * Math.sin(x * 0.13 + 1.1) - Math.max(0, x - 96) * 0.3;
+    const y = Math.round(horizon - Math.max(0, h));
+    P.rect(x, y, 1, horizon - y, x > 4 && Math.sin(x * 0.045 + 0.4) < Math.sin((x + 1) * 0.045 + 0.4) ? C.mtn : C.mtn2);
+  }
+  P.rect(104, 57, 56, 6, C.sea);
+  for (let k = 0; k < 10; k++) P.rect(106 + Math.floor(hash(k + 70) * 50), 58 + Math.floor(hash(k + 80) * 4), 2 + Math.floor(hash(k + 90) * 3), 1, C.sea2);
+  for (let x = 108; x < 152; x++) {
+    const cliff = x > 140 ? (x - 140) * 0.9 : 0;
+    const y = Math.round(61 - Math.min(5, (x - 108) * 0.35) + cliff);
+    P.rect(x, y, 1, 64 - y, C.g1);
+  }
+  const bands = [[62, C.g1], [70, C.g2], [84, C.g3], [102, C.g4]];
+  bands.forEach(([y, col], i) => { const end = i + 1 < bands.length ? bands[i + 1][0] : 120; P.rect(0, y, 160, end - y, col); if (i) for (let x = i % 2; x < 160; x += 2) P.px(x, y, bands[i - 1][1]); });
+  for (let k = 0; k < 46; k++) {
+    const y = 64 + Math.floor(hash(k + 300) * 56), x = Math.floor(hash(k + 400) * 160), d = depth(y);
+    const col = hash(k + 500) < 0.18 ? (hash(k + 600) < 0.5 ? C.flowerA : C.flowerB) : C.tuft;
+    P.rect(x, y, 1, d > 0.5 ? 2 : 1, col);
+    if (d > 0.6 && col === C.tuft) P.px(x + 1, y + 1, col);
+  }
+  drawBeam(P, 134, 37, 26);
+  drawLighthouse(P, 134, 59, 26);
+  const pts = SCENIC.pts;
+  const s0 = SCENIC.s;
+  const along = p => SCENIC_START + p * (1 - SCENIC_START);
+  const sharedS = along(v.sharedProgress), mineS = along(v.progress);
+  for (let i = 0; i < pts.length; i++) {
+    const [x, y] = pts[i];
+    const w = 1.5 + 6.5 * depth(y);
+    const s = s0[i];
+    const col = s <= sharedS ? C.pathDone : s <= mineS ? C.pending : C.path;
+    P.rect(x - w - 1, y, 1, 1, C.pathEdge); P.rect(x + w, y, 1, 1, C.pathEdge);
+    P.rect(x - w, y, w * 2, 1.4, col);
+  }
+  for (let s = SCENIC_START + 0.02; s < Math.min(sharedS, 0.97); s += 0.045) {
+    const [x, y] = SCENIC.at(s);
+    P.px(x - 1 + (Math.round(s * 100) % 2) * 2, y, C.foot);
+  }
+  const me = v.id, them = v.p;
+  const [mx, my] = SCENIC.at(mineS);
+  if (settings.walkers !== "current") {
+    const d = pairOffsets("side", me);
+    const figs = drawFigures(P, "side", !walk.inRange
+      ? [{ who: them, x: SCENIC.at(sharedS)[0], y: SCENIC.at(sharedS)[1], frame: 1, ghost: true }, { who: me, x: mx, y: my, frame: v.frame }]
+      : [{ who: them, x: mx - d, y: my - 1, frame: 1 - v.frame }, { who: me, x: mx + d, y: my, frame: v.frame }]);
+    if (v.local > 0 && !v.toast) placeTag(P, `+${fmt(v.local)}`, C.pending, C.ink, figs, me, { x0: 1, y0: HEADER + 1, x1: 158, y1: FOOTER_TOP - 2 });
+  } else if (!walk.inRange) {
+    const [gx, gy] = SCENIC.at(sharedS);
+    drawWalker(P, them, gx - 3, gy, 1, true);
+    drawWalker(P, me, mx, my, v.frame, false);
+  } else {
+    drawWalker(P, them, mx - 4, my - 1, 1 - v.frame, false);
+    drawWalker(P, me, mx + 3, my, v.frame, false);
+  }
+  if (settings.walkers === "current" && v.local > 0 && !v.toast) {
+    const label = `+${fmt(v.local)}`;
+    const tw = P.textWidth(label);
+    const lx = Math.max(80, Math.round(mx - tw - 8)), ly = Math.round(my - 4);
+    P.rect(lx - 2, ly - 2, tw + 4, 11, C.ink);
+    P.text(label, lx, ly, 1, C.pending);
+  }
+  P.rect(0, FOOTER_TOP, 160, 120 - FOOTER_TOP, C.bar);
+  P.rect(0, FOOTER_TOP, 160, 1, C.panel);
+  P.text("LIGHTHOUSE", 3, FOOTER_TOP + 3, 1, C.lamp);
+  P.textR(toGoText(v), 157, FOOTER_TOP + 3, 1, C.white);
+  header(P, v);
+  if (v.toast) bubble(P, v.toast.text, v.toast.color, 80, HEADER + 4);
+}
+
+/* ---------- 2. trail map ---------- */
+const ROUTE_MAP = [[14, 108], [30, 100], [40, 86], [62, 92], [80, 80], [66, 66], [86, 58], [104, 68], [116, 62], [124, 61]];
+const MAP = parametrise(ROUTE_MAP.reduce((acc, p, i) => {
+  if (i === 0) return [p];
+  const a = acc[acc.length - 1], n = Math.ceil(Math.hypot(p[0] - a[0], p[1] - a[1]));
+  for (let k = 1; k <= n; k++) acc.push([a[0] + (p[0] - a[0]) * k / n, a[1] + (p[1] - a[1]) * k / n]);
+  return acc;
+}, []));
+const coastY = x => 15 + (x - 78) * 0.78 + 3 * Math.sin(x * 0.35);
+const nearRoute = (x, y, d) => MAP.pts.some(p => Math.abs(p[0] - x) < d && Math.abs(p[1] - y) < d);
+
+function drawMap(P, v) {
+  const top = HEADER;
+  P.rect(0, top, 160, 120 - top, C.paper);
+  for (let x = 0; x < 160; x += 12) P.rect(x, top, 1, 120 - top, C.grid);
+  for (let y = 29; y < 120; y += 12) P.rect(0, y, 160, 1, C.grid);
+  for (let x = 78; x < 160; x++) {
+    const cy = Math.round(coastY(x));
+    if (cy > top) P.rect(x, top, 1, cy - top, C.mapSea);
+    if (cy + 2 > top) P.rect(x, Math.max(top, cy), 1, cy >= top ? 2 : cy + 2 - top, C.sand);
+  }
+  for (let k = 0; k < 9; k++) { const x = 104 + Math.floor(hash(k + 20) * 50), y = 32 + Math.floor(hash(k + 30) * 12); if (y < coastY(x) - 3) P.rect(x, y, 3, 1, C.mapSea2); }
+  P.text("LIGHTHOUSE", 99, 23, 1, C.white);
+  for (let k = 0; k < 40; k++) {
+    const x = 4 + Math.floor(hash(k + 700) * 152), y = top + 4 + Math.floor(hash(k + 800) * 90);
+    if (y < coastY(x) + 4 || nearRoute(x + 2, y + 3, 7) || (x > 82 && y > 100) || (x < 22 && y < 39)) continue;
+    if (hash(k + 900) < 0.25) {
+      for (let r = 0; r < 4; r++) P.rect(x + 3 - r, y + r, r * 2 + 1, 1, r === 0 ? C.snow : C.hill);
+    } else {
+      P.rect(x + 2, y, 1, 1, C.tree2); P.rect(x + 1, y + 1, 3, 1, C.tree); P.rect(x, y + 2, 5, 1, C.tree); P.rect(x + 1, y + 3, 3, 1, C.tree2); P.rect(x + 2, y + 4, 1, 1, C.trunk);
+    }
+  }
+  P.rect(10, 25, 1, 9, C.compass); P.rect(6, 29, 9, 1, C.compass); P.px(10, 24, C.route); P.text("N", 13, 22, 1, C.compass);
+  const pts = MAP.pts, s0 = MAP.s;
+  for (let i = 0; i < pts.length; i++) {
+    const [x, y] = pts[i], s = s0[i];
+    if (s <= v.sharedProgress) P.rect(x - 1, y - 1, 2, 2, C.route);
+    else if (s <= v.progress) P.rect(x - 1, y - 1, 2, 2, C.pending);
+    else if (i % 4 < 2) P.rect(x, y, 1, 1, C.remain);
+  }
+  P.rect(11, 105, 6, 6, C.remain); P.rect(12, 106, 4, 4, C.paper);
+  drawLighthouse(P, 130, 62, 19);
+  const [mx, my] = MAP.at(v.progress);
+  const token = (x, y, left, right, hollow) => {
+    x = Math.round(x) - 3; y = Math.round(y) - 3;
+    P.rect(x - 1, y - 1, 8, 8, hollow ? C.paper : C.lhDark);
+    if (hollow) { P.rect(x, y, 6, 1, left); P.rect(x, y + 5, 6, 1, left); P.rect(x, y, 1, 6, left); P.rect(x + 5, y, 1, 6, left); return; }
+    P.rect(x, y, 3, 6, left); P.rect(x + 3, y, 3, 6, right);
+  };
+  const col = id => (id === "maggie" ? C.jacketA : C.jacketB);
+  if (settings.walkers !== "current") {
+    const [gx, gy] = MAP.at(v.sharedProgress);
+    const d = pairOffsets("top", v.id);
+    const figs = drawFigures(P, "top", !walk.inRange
+      ? [{ who: v.p, x: gx, y: gy, ghost: true }, { who: v.id, x: mx, y: my }]
+      : [{ who: v.p, x: mx - d, y: my }, { who: v.id, x: mx + d, y: my }]);
+    if (v.local > 0 && !v.toast) placeTag(P, `+${fmt(v.local)}`, C.pending, C.boxBg, figs, v.id, { x0: 1, y0: HEADER + 1, x1: 158, y1: 102 });
+  } else if (!walk.inRange) {
+    const [gx, gy] = MAP.at(v.sharedProgress);
+    token(gx, gy, col(v.p), col(v.p), true);
+    token(mx, my, col(v.id), col(v.id), false);
+  } else token(mx, my, C.jacketA, C.jacketB, false);
+  if (settings.walkers === "current" && v.local > 0 && !v.toast) {
+    const label = `+${fmt(v.local)}`;
+    const tw = P.textWidth(label);
+    const lx = Math.round(mx - tw / 2), ly = Math.round(my - 15);
+    P.rect(lx - 2, ly - 1, tw + 4, 9, C.boxBg);
+    P.text(label, lx, ly, 1, C.pending);
+  }
+  const label = toGoText(v);
+  const tw = P.textWidth(label);
+  const bx = 157 - tw - 6;
+  P.rect(bx, 104, tw + 6, 13, C.boxBg);
+  P.rect(bx, 104, tw + 6, 1, C.lhDark); P.rect(bx, 116, tw + 6, 1, C.lhDark);
+  P.text(label, bx + 3, 107, 1, C.boxInk);
+  header(P, v);
+  if (v.toast) bubble(P, v.toast.text, v.toast.color, 80, HEADER + 10);
+}
+
+/* ---------- 3. count + trail ---------- */
+const STRIP = { x0: 8, x1: 136, y: 102 };
+const stripY = x => STRIP.y + Math.round(2.5 * Math.sin(x * 0.07));
+function drawHybrid(P, v) {
+  P.rect(0, 0, 160, 120, C.ink);
+  drawLink(P, 4, 4, v.link);
+  P.text(v.status, 18, 3, 1, statusColor(v));
+  P.textR(`GOAL ${fmt(GOAL)}`, 157, 3, 1, C.muted);
+  const big = fmt(v.shown);
+  const s = P.textWidth(big, 4) <= 152 ? 4 : 3;
+  P.textC(big, 80, 14, s, C.white);
+  const lineY = 47;
+  if (v.toast) P.textC(v.toast.text, 80, lineY, 1, v.toast.color);
+  else if (v.local > 0 || !walk.inRange) {
+    const a = v.caption;
+    const b = v.local > 0 ? `+${fmt(v.local)} NEW` : "";
+    const gap = b ? 8 : 0;
+    const x = Math.round(80 - (P.textWidth(a) + gap + P.textWidth(b)) / 2);
+    P.text(a, x, lineY, 1, C.muted);
+    if (b) P.text(b, x + P.textWidth(a) + gap, lineY, 1, C.pending);
+  } else P.textC(v.caption, 80, lineY, 1, C.muted);
+
+  const top = 60, hor = 88;
+  const dusk = [C.dusk1, C.dusk2, C.dusk3, C.dusk4];
+  const bh = (hor - top) / dusk.length;
+  dusk.forEach((c, i) => P.rect(0, top + Math.floor(i * bh), 160, Math.ceil(bh) + 1, c));
+  for (let i = 1; i < dusk.length; i++) { const y = top + Math.floor(i * bh) - 1; for (let x = i % 2; x < 160; x += 2) P.px(x, y, dusk[i]); }
+  P.disc(26, 84, 5, C.sun);
+  for (let x = 0; x < 124; x++) { const y = Math.round(hor - 4 - 3 * Math.sin(x * 0.08 + 0.5) - 2 * Math.sin(x * 0.21)); P.rect(x, y, 1, hor - y, C.mtn); }
+  P.rect(124, 85, 36, 4, C.sea);
+  P.rect(130, 86, 3, 1, C.sea2); P.rect(150, 87, 4, 1, C.sea2);
+  P.rect(0, hor, 160, 32, C.g2);
+  P.rect(0, 106, 160, 14, C.g3);
+  for (let x = 1; x < 160; x += 2) P.px(x, 106, C.g2);
+  for (let k = 0; k < 18; k++) P.px(Math.floor(hash(k + 1000) * 160), 90 + Math.floor(hash(k + 1100) * 28), hash(k + 1200) < 0.2 ? C.flowerA : C.tuft);
+  drawLighthouse(P, 146, 91, 18);
+  drawBeam(P, 146, 77, 18);
+  const span = STRIP.x1 - STRIP.x0;
+  for (let x = STRIP.x0; x <= STRIP.x1; x++) {
+    const s = (x - STRIP.x0) / span;
+    const col = s <= v.sharedProgress ? C.pathDone : s <= v.progress ? C.pending : C.path;
+    const y = stripY(x);
+    P.px(x, y - 1, C.pathEdge);
+    P.rect(x, y, 1, 4, col);
+    P.px(x, y + 4, C.pathEdge);
+  }
+  P.rect(STRIP.x1 + 1, stripY(STRIP.x1) - 1, 6, 4, C.path);
+  const xAt = p => STRIP.x0 + p * span;
+  const mx = xAt(v.progress);
+  if (settings.walkers !== "current") {
+    const d = pairOffsets("side", v.id);
+    const gx = xAt(v.sharedProgress);
+    drawFigures(P, "side", !walk.inRange
+      ? [{ who: v.p, x: gx, y: stripY(gx) + 2, frame: 1, ghost: true }, { who: v.id, x: mx, y: stripY(mx) + 2, frame: v.frame }]
+      : [{ who: v.p, x: mx - d, y: stripY(mx) + 1, frame: 1 - v.frame }, { who: v.id, x: mx + d, y: stripY(mx) + 2, frame: v.frame }]);
+  } else if (!walk.inRange) {
+    const gx = xAt(v.sharedProgress);
+    drawWalker(P, v.p, gx, stripY(gx) + 2, 1, true);
+    drawWalker(P, v.id, mx, stripY(mx) + 2, v.frame, false);
+  } else {
+    drawWalker(P, v.p, mx - 4, stripY(mx) + 1, 1 - v.frame, false);
+    drawWalker(P, v.id, mx + 3, stripY(mx) + 2, v.frame, false);
+  }
+  const label = toGoText(v);
+  P.rect(3, 63, P.textWidth(label) + 4, 10, C.ink);
+  P.text(label, 5, 64, 1, C.white);
+  P.rect(0, 59, 160, 1, C.panel);
+}
+
+const DRAW = { scenic: drawScenic, map: drawMap, hybrid: drawHybrid };
+function drawBadge(id, canvas) {
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  const P = painter(ctx);
+  P.rect(0, 0, 160, 120, C.ink);
+  DRAW[settings.version](P, view(id));
+  stats.draws++;
+}
+
+/* ---------- page ---------- */
+const $ = id => document.getElementById(id);
+const root = $("bw");
+const pair = $("pair");
+const cards = {};
+IDS.forEach(id => {
+  const col = document.createElement("div");
+  col.className = "bw-badge";
+  col.innerHTML = `<canvas class="bw-screen" width="160" height="120" role="img"></canvas>`;
+  const person = document.createElement("div");
+  person.className = "bw-person";
+  person.innerHTML = `<span class="bw-name"><span class="bw-swatch" style="background:${SWATCH[id]}" aria-hidden="true"></span>${NAMES[id]}</span>
+    <span class="bw-steps" role="group" aria-label="Add steps to ${NAMES[id]}'s badge">
+      <button class="artifact-button" type="button" data-size="small" data-variant="outline" data-n="50" aria-label="Add 50 steps to ${NAMES[id]}">+50 steps</button>
+      <button class="artifact-button" type="button" data-size="small" data-variant="outline" data-n="150" aria-label="Add 150 steps to ${NAMES[id]}">+150 steps</button>
+    </span>`;
+  col.appendChild(person);
+  pair.appendChild(col);
+  cards[id] = { col, canvas: col.querySelector("canvas"), person };
+  person.querySelectorAll("button[data-n]").forEach(btn => btn.addEventListener("click", () => { addSteps(id, Number(btn.dataset.n)); render(); }));
+});
+
+function fitScreens() {
+  const dpr = window.devicePixelRatio || 1;
+  const gap = parseFloat(getComputedStyle(pair).columnGap) || 0;
+  const cell = (pair.clientWidth - gap) / 2;
+  const scale = Math.floor((cell * dpr) / 160);
+  pair.style.setProperty("--screen-w", scale >= 2 ? `${(scale * 160) / dpr}px` : "100%");
+  pair.dataset.scale = scale >= 2 ? String(scale) : "fit";
+}
+if ("ResizeObserver" in window) new ResizeObserver(fitScreens).observe(pair);
+fitScreens();
+
+function arrange() {
+  root.dataset.arrangement = settings.version;
+}
+
+function report() {
+  if (typeof host.report === "function") host.report({ version: settings.version, sharingMode: settings.sharingMode, walkers: settings.walkers });
+}
+document.querySelectorAll("[data-setting]").forEach(group => {
+  const key = group.dataset.setting;
+  group.querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => {
+    if (!applySetting(key, btn.dataset.v)) return;
+    report();
+    render();
+  }));
+});
+if (typeof host.onSettings === "function") host.onSettings(values => { if (applySettings(values)) render(); });
+
+$("move").addEventListener("click", () => { toggleRange(); render(); });
+$("sync").addEventListener("click", () => { syncNow(); render(); });
+$("sample").addEventListener("click", () => { IDS.forEach(id => { const short = SAMPLE_ADD[id] - localOf(id); if (short > 0) addSteps(id, short); }); render(); });
+$("reset").addEventListener("click", () => { walk = freshWalk(); render(); });
+
+function render() {
+  arrange();
+  document.querySelectorAll("[data-setting]").forEach(group => {
+    const val = settings[group.dataset.setting];
+    group.querySelectorAll("button").forEach(btn => btn.setAttribute("aria-pressed", String(btn.dataset.v === val)));
+  });
+  const syncing = walk.inRange && !auto();
+  const pending = pendingExchange();
+  const state = !walk.inRange ? "out" : syncing && pending ? "wait" : "in";
+  $("status").dataset.state = state;
+  $("statusText").textContent = { out: "Out of range", wait: "In range · not synced", in: "In range" }[state];
+  $("move").textContent = walk.inRange ? "Walk apart" : "Meet up";
+  $("move").dataset.variant = syncing && pending ? "outline" : "primary";
+  $("sync").hidden = !syncing;
+  $("sync").dataset.variant = pending ? "primary" : "outline";
+  const atSample = IDS.every(id => localOf(id) >= SAMPLE_ADD[id]);
+  $("sample").hidden = walk.inRange || atSample;
+  $("sample").textContent = `Sample walk: +${SAMPLE_ADD.maggie} / +${SAMPLE_ADD.martin}`;
+  $("sample").setAttribute("aria-label", `Add sample steps: Maggie +${SAMPLE_ADD.maggie}, Martin +${SAMPLE_ADD.martin}`);
+  IDS.forEach(id => {
+    const local = localOf(id);
+    const where = !walk.inRange ? "out of range" : syncing && pending ? "in range, waiting for Sync" : `in range of ${NAMES[partnerOf(id)]}`;
+    cards[id].canvas.setAttribute("aria-label", `${NAMES[id]}'s badge: ${fmt(sharedTotalOf(id))} of ${fmt(GOAL)} steps ${local > 0 || !walk.inRange ? "last shared" : "shared"}${local > 0 ? `, +${fmt(local)} new steps not yet shared` : ""}; ${where}`);
+  });
+  paint();
+}
+
+/* ---------- render on change; animate only active transitions ---------- */
+let rafId = 0, toastTimer = 0, onScreen = true;
+const visible = () => onScreen && document.visibilityState !== "hidden";
+const animating = () => !REDUCED && IDS.some(id => { const b = walk.badges[id]; return b.anim || now() < b.stepUntil; });
+function drawAll() { IDS.forEach(id => drawBadge(id, cards[id].canvas)); }
+function tick() {
+  rafId = 0;
+  if (!visible()) return;
+  stats.frames++;
+  drawAll();
+  if (animating()) rafId = requestAnimationFrame(tick);
+}
+function scheduleToastExpiry() {
+  clearTimeout(toastTimer);
+  const t = now();
+  const ends = IDS.map(id => walk.badges[id].toast).filter(x => x && x.until > t).map(x => x.until);
+  if (ends.length) toastTimer = setTimeout(() => { if (visible()) paint(); }, Math.min(...ends) - t + 20);
+}
+function paint() {
+  drawAll();
+  if (visible() && animating() && !rafId) rafId = requestAnimationFrame(tick);
+  scheduleToastExpiry();
+}
+document.addEventListener("visibilitychange", () => { if (visible()) paint(); else { cancelAnimationFrame(rafId); rafId = 0; } });
+if ("IntersectionObserver" in window) new IntersectionObserver(entries => {
+  onScreen = entries[entries.length - 1].isIntersecting;
+  if (onScreen) paint(); else { cancelAnimationFrame(rafId); rafId = 0; }
+}).observe(root);
+
+applySample(host.sample);
+render();
+window.__badgeWalk = { settings, get walk() { return walk; }, overflow, stats, totalOf, sharedTotalOf, localOf, drawBadge, cards, get rafActive() { return rafId !== 0; }, get scale() { return pair.dataset.scale; } };
+})();
+</script>
