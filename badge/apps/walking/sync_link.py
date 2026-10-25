@@ -30,7 +30,6 @@ class BadgeSync:
         self.packet_index = 0
         self.completed_at = None
         self.synced_total = None
-        self.synced_counts = None
         self.notice = ""
         self.notice_at = None
         self.peer_id = None
@@ -111,7 +110,6 @@ class BadgeSync:
                         self.completed_at = now
                         self.success_at = now
                         self.synced_total = self.exchange.total
-                        self.synced_counts = dict(self.exchange.counts)
                     elif now - self.completed_at >= 1000:
                         self._leave(now, "Synced")
                 elif now - self.started >= 8000:

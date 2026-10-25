@@ -28,6 +28,7 @@ last_sync = merge_counts({}, state["last_sync"])
 
 badge.mode(HIRES | VSYNC)
 import walking_ui as ui
+ui.set_badge(DEVICE_ID)
 badge.default_clear = ui.BACKGROUND
 
 sensor_bus = None

@@ -15,34 +15,65 @@ APP = Path(__file__).parents[1] / "badge/apps/walking"
 
 
 class Transform:
-    def translate(self, value):
+    def translate(self, *args):
         return self
 
-    def scale(self, x, y):
+    def scale(self, *args):
+        return self
+
+    def rotate(self, angle):
         return self
 
 
-class Screen:
-    clip = (0, 0, 320, 240)
-    width, height = 320, 240
+class Shape:
+    transform = None
 
-    def __init__(self):
-        self.texts = []
+    def __init__(self, *args):
+        self.args = args
 
-    def measure_text(self, value):
-        return len(value) * 7, 14
 
-    def text(self, value, *args, **kwargs):
-        self.texts.append(value)
+class Rect:
+    def __init__(self, x, y, w, h):
+        self.x, self.y, self.w, self.h = x, y, w, h
+
+
+class Surface:
+    pen = antialias = font = None
+    alpha = 255
+
+    def __init__(self, width=320, height=240, buffer=None, mode=None):
+        self.width, self.height = width, height
+        self.raw = buffer if buffer is not None else bytearray(width * height * 2)
+
+    def shape(self, value):
+        pass
 
     def rectangle(self, *args):
         pass
 
+
+class Screen(Surface):
+    clip = (0, 0, 320, 240)
+
+    def __init__(self):
+        super().__init__()
+        self.texts = []
+
+    def measure_text(self, value, font_size=14):
+        return len(value) * font_size * 0.55, font_size
+
+    def text(self, value, *args, **kwargs):
+        self.texts.append(value)
+
     def line(self, *args):
         pass
 
-    def shape(self, *args):
-        pass
+
+def make_image(width, height, buffer=None, mode=None):
+    return Surface(width, height, buffer, mode)
+
+
+make_image.X4, make_image.RGB565 = 4, 1
 
 
 class BadgeHarness:
@@ -91,14 +122,15 @@ class BadgeHarness:
         self.stack.enter_context(patch.dict(sys.modules, {
             "badgeware": firmware, "machine": machine, "time": clock,
         }))
-        for name in ("sync_link", "walking_ui", "diagnostics"):
+        for name in ("sync_link", "walking_ui", "diagnostics", "painter", "coast_scene", "hikers", "moments"):
             sys.modules.pop(name, None)
         self.stack.enter_context(patch.multiple(
             builtins, create=True, badge=self.badge, screen=self.screen,
             color=types.SimpleNamespace(rgb=lambda *channels: channels),
-            font=types.SimpleNamespace(sins="sins"),
-            shape=types.SimpleNamespace(circle=lambda *args: args),
-            vec2=lambda x, y: (x, y), mat3=Transform,
+            font=types.SimpleNamespace(sins="sins", load=lambda path: "mona"),
+            shape=types.SimpleNamespace(circle=Shape, custom=Shape, rectangle=Shape, rounded_rectangle=Shape),
+            brush=types.SimpleNamespace(LINEAR=0, gradient=lambda *args: args),
+            image=make_image, vec2=lambda x, y: (x, y), mat3=Transform, rect=Rect,
             HIRES=1, VSYNC=2, BUTTON_BACK="back",
         ))
         self.stack.enter_context(patch("os.chdir", lambda path: None))

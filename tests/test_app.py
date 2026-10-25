@@ -13,15 +13,17 @@ class AppTests(unittest.TestCase):
         with BadgeHarness() as app:
             app.back = True
             self.assertIsNone(app.frame(100))
-            self.assertIn("Your steps", app.screen.texts)
+            self.assertIn("Hold badges back to back to sync", app.screen.texts)
 
     def test_live_personal_steps_do_not_change_last_synced_team_total(self):
         with BadgeHarness() as app:
             app.frame(250, raw=0)
             app.frame(500, raw=5)
-            self.assertIn("28", app.screen.texts)
-            self.assertIn("Team total: 40", app.screen.texts)
-            self.assertIn("Partner at last sync: 17", app.screen.texts)
+            # The big number stays the confirmed 40; the 5 new steps are only "yours".
+            self.assertIn("40", app.screen.texts)
+            self.assertIn("of 10,000 shared steps", app.screen.texts)
+            self.assertIn("+5", app.screen.texts)
+            self.assertNotIn("45", app.screen.texts)
             app.frame(2500, raw=5)
             self.assertEqual(app.saved["counts"][OWN.hex()], 28)
             self.assertEqual(app.saved["last_sync"], {OWN.hex(): 23, PEER.hex(): 17})
@@ -36,11 +38,14 @@ class AppTests(unittest.TestCase):
             peer.receive(sync.link.outgoing[0])
             sync.link.incoming.append(peer.packets()[0])
             app.frame(100)
-            self.assertIn("Team total: 40", app.screen.texts)
+            self.assertIn("Swapping steps", app.screen.texts)
+            self.assertNotIn("43", app.screen.texts)
+            self.assertEqual(app.saved["last_sync"], {OWN.hex(): 23, PEER.hex(): 17})
             sync.link.incoming.append(peer.packets()[1])
             app.frame(200)
-            self.assertIn("Synced", app.screen.texts)
+            self.assertIn("Synced!", app.screen.texts)
             self.assertIn("43", app.screen.texts)
+            self.assertIn("+3 together", app.screen.texts)
             self.assertIn("Move badges apart", app.screen.texts)
             self.assertEqual(app.saved["last_sync"], {OWN.hex(): 23, PEER.hex(): 20})
 
@@ -59,7 +64,7 @@ class AppTests(unittest.TestCase):
         with BadgeHarness() as app:
             sync = app.app["sync"]
 
-            def hold_and_separate(now, partner_steps):
+            def hold_and_separate(now, partner_steps, title):
                 sync.link.linked = True
                 sync.link.leaving = False
                 app.frame(now)
@@ -69,7 +74,7 @@ class AppTests(unittest.TestCase):
                 app.frame(now + 100)
                 peer.receive(sync.link.outgoing[-1])
                 self.assertTrue(peer.done)
-                self.assertIn("Synced", app.screen.texts)
+                self.assertIn(title, app.screen.texts)
                 self.assertEqual(sync.synced_total, peer.total)
                 app.frame(now + 1100)
                 self.assertTrue(sync.link.leaving)
@@ -78,15 +83,14 @@ class AppTests(unittest.TestCase):
                 app.frame(now + 1200)
                 sync.proximity.apart = False
 
-            hold_and_separate(0, 17)
+            hold_and_separate(0, 17, "Up to date")
             self.assertEqual(sum(app.saved["last_sync"].values()), 40)
-            hold_and_separate(3000, 37)
+            hold_and_separate(3000, 37, "Synced!")
             self.assertEqual(app.saved["last_sync"], {OWN.hex(): 23, PEER.hex(): 37})
-            hold_and_separate(6000, 37)
+            hold_and_separate(6000, 37, "Up to date")
             self.assertEqual(sum(app.saved["last_sync"].values()), 60)
             app.frame(9000)
-            self.assertIn("Team total: 60", app.screen.texts)
-            self.assertIn("Partner at last sync: 37", app.screen.texts)
+            self.assertIn("60 shared steps saved", app.screen.texts)
 
     def test_failed_confirmation_save_does_not_show_success(self):
         with BadgeHarness() as app:
@@ -101,7 +105,8 @@ class AppTests(unittest.TestCase):
             sync.link.incoming.append(peer.packets()[1])
             with redirect_stdout(io.StringIO()):
                 app.frame(200)
-            self.assertNotIn("Synced", app.screen.texts)
+            self.assertNotIn("Synced!", app.screen.texts)
+            self.assertNotIn("Up to date", app.screen.texts)
             self.assertIsNone(sync.success_age(200))
             self.assertEqual(app.saved["last_sync"], {OWN.hex(): 23, PEER.hex(): 17})
 

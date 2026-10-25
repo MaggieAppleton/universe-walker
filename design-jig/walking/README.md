@@ -1,72 +1,70 @@
-# Walking badge design jig
+# Walking badge design review
 
-Open [index.html](index.html) directly in a browser. It works offline, with
-vanilla Dial Kit controls, comparison screens and a Copy settings button.
-All screens are exactly 320 × 240 physical pixels, painted at 160 × 120 and
-scaled by two without smoothing. The flat PNGs and composited layers come
-from the same candidate Python rectangle painter in `preview/`.
+The current design is **Horizon, Coast, big lighthouse, full-screen sync moments**,
+with a 10,000-step shared goal. A large white number shows the confirmed shared
+total; an equally large yellow `+N` shows local steps waiting to sync. The two
+numbers shrink together to fit, and `+0` stays hidden.
 
-This is a review proposal. Nothing in `badge/apps/walking` or on the actual
-badges was changed. The confirmed step protocol, counter and saved progress
-remain the verified implementation. Native adaptation follows design review.
+## Open the previews
 
-Settled choices: count + trail, outlined hikers, 500-step demo goal;
-Maggie wears `f95119f417c67d7e`, Martin wears `79469e7227b64f70`.
-The screen’s dominant number is confirmed shared progress. Personal steps
-since confirmation appear separately and cannot light the lighthouse early.
+From the repository root, run:
 
-The landscape gallery compares sunset, alpine, valley, meadow, coast and map
-views with gradient and solid treatments. Click a gallery screen or choose
-Landscape/Atmosphere in Dial Kit to apply it throughout the state matrix.
-The map compares shaded and flat paper rather than a literal sky.
+```sh
+python3 -m http.server 8765 --bind 127.0.0.1 --directory design-jig/walking
+```
 
-Three additional fresh layout sketches use the same pending and acknowledged
-fixture data: a landscape-first HUD from Flappy Mona, a co-op map HUD from
-Snake, and a people-first pairing composition from Merge Conflict/Pong.
-These are starting concepts, not approved replacements. Their two key states
-are shown; the complete 24-state review applies to the count-and-trail track.
+Open [the design review](http://127.0.0.1:8765/) for every state on both badges,
+world comparisons and animated sync moments. The folder's `index.html` opens
+`fresh.html`, which remains the main review page.
 
-The 24 cases cover first use, walking apart, personal pending steps, all sync
-phases, confirmed zero, unchanged repeat sync, separation, retry, destination
-boundaries, long counts, and all current recovery/error messages. These are
-review fixtures, not readings from either badge. Change the Badge selector
-to see both hiker identities. The comparison uses the selected reference’s
-art treatment with the same fixture data and honest native status wording.
+Open [the count comparison](http://127.0.0.1:8765/counter.html) to add steps to
+either badge and sync them. Its left column keeps the previous small contribution
+for comparison; the right column shows the current large yellow contribution.
+Both pages have vanilla Dial Kit controls and a button to copy the chosen values.
+Reset clears the review page's saved dial settings.
 
-## Game references reviewed
+These are browser fixtures; they never read or write a badge. Mona Sans loads
+from Google Fonts, so matching the saved captures needs an internet connection.
 
-- [Merge Conflict UI](https://github.com/badger/home/blob/main/badge/apps/merge_conflict/ui.py):
-  a disciplined body/title/huge type hierarchy, dark surfaces, bright green
-  for positive emphasis, and short character reactions rather than constant
-  full-screen effects. The proposal retains the chosen reference font and
-  composition, using Merge Conflict’s positive green and a short check cue.
-- [Pong](https://github.com/badger/home/blob/main/badge/apps/pong/__init__.py):
-  separate holding, connecting and pull-apart messages; a clearly visible
-  progress bar. The jig exposes hold progress and keeps confirmation separate
-  from connection setup.
-- [Snake](https://github.com/badger/home/blob/main/badge/apps/snake/__init__.py):
-  a stable HUD and quiet playfield; prompts are contextual. The count stays
-  anchored and the scenery carries no extra duplicate goal label.
-- [Flappy Mona](https://github.com/badger/home/blob/main/badge/apps/flappy_mona/__init__.py):
-  broad landscape silhouettes and character motion, with the HUD kept legible.
-  The proposed landscape uses broad bands and a clean horizon. The dials
-  expose both walking frames without changing progress.
+## Files to edit
 
-Upstream source and Flappy Mona’s landscape asset were inspected; current
-badge storage was not mounted during this source review. These observations
-are not claimed as screenshots of the installed games.
+| File | Purpose |
+| --- | --- |
+| `fresh.html`, `fresh/app.js` | Review page and Dial Kit controls |
+| `counter.html`, `counter.js` | Live step/sync comparison and long-number checks |
+| `fresh/painter.js` | Canvas drawing and number fitting |
+| `fresh/directions.js` | Horizon/map layouts and the count row |
+| `fresh/worlds.js`, `fresh/events.js` | Landscapes and sync/arrival moments |
+| `fresh/states.js` | Shared preview fixtures; also checked by the Python tests |
+| `final/settings.json` | Settings used for the current saved captures |
+| `final/` | Current 320 × 240 PNG captures and their notes |
+| `final/alternatives/` | Comparisons available in the current review page |
+| `vendor/` | Dial Kit's vanilla distribution and its licence |
 
-## Regenerate
+The native badge implementation lives in [`../../badge/apps/walking`](../../badge/apps/walking).
+Browser font metrics can differ from the badge's `.af` font.
 
-Run `PYTHONDONTWRITEBYTECODE=1 python3 design-jig/walking/export.py` from the
-project root after changing the painter. Generated layer packs are image
-assets, not browser reimplementations of the badge drawing logic. Dial Kit’s
-offline vanilla distribution and its license live in `vendor/`.
+## Export PNGs
 
-Maggie explicitly requested iteration before hardware changes and asked for
-new environments plus fresh designs informed by stock games. The app and
-badges remain unchanged throughout these studies.
+With Python 3.9+ and Chrome, Chromium or Edge installed, run from the repository root:
 
-The Chopin design session must receive the approved source/settings and
-faithful screen-only renders after Maggie approves the final design. Current
-renders are intermediate proposals and must not be recorded as final choices.
+```sh
+python3 design-jig/walking/final/export.py
+```
+
+The exporter starts its own temporary local server and browser profile, loads
+`final/settings.json`, and saves eight PNGs in `final/`. No separate server or
+Python packages are needed. It fails if Mona Sans cannot load, so fallback fonts
+cannot silently replace the current design.
+
+Useful options:
+
+```sh
+python3 design-jig/walking/final/export.py --alternatives
+python3 design-jig/walking/final/export.py --output /tmp/walking-captures
+python3 design-jig/walking/final/export.py --browser /path/to/chromium
+```
+
+`--alternatives` also refreshes the twelve comparison captures. See
+[`final/README.md`](final/README.md) for the fixture counts and saved states.
+The old rectangle-painter experiments and their generated layers have been removed.

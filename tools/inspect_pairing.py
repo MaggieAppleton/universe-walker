@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from badge_usb import remote
+
 ROOT = Path(__file__).resolve().parents[1]
 DEVICE_CODE = r'''
 import os, sys, json, machine, binascii, time
@@ -25,6 +27,11 @@ report["clock_probe"] = {
         (69995, 69928), (58257, 22527), (68035, 22527),
     )],
 }
+try:
+    with open("/system/apps/walking/walking_ui.py") as source:
+        report["installed_goal_lines"] = [line.strip() for line in source if line.startswith("GOAL =")]
+except OSError:
+    pass
 paths = []
 try:
     from badgeware import link as pairing_library
@@ -48,7 +55,8 @@ for directory in ("/rom", "/rom/badgeware", ".frozen/badgeware"):
     except OSError:
         pass
 paths.extend(("/state/walking_error.txt", "/state/walking_demo.json",
-              "/state/walking_pairing.log", "/system/apps/walking/pairing-trace.log"))
+              "/state/walking_pairing.log", "/system/apps/walking/pairing-trace.log",
+              "/system/apps/walking/walking_ui.py", "/system/apps/walking/painter.py"))
 files = []
 for path in paths:
     if path in files:
@@ -62,16 +70,6 @@ for path in paths:
 report["files"] = files
 print("WALKING_PAIRING_REPORT " + json.dumps(report))
 '''
-
-
-def remote(*arguments):
-    result = subprocess.run(
-        [sys.executable, "-m", "mpremote", *arguments],
-        capture_output=True, text=True, timeout=45,
-    )
-    if result.returncode:
-        raise RuntimeError(result.stderr.strip() or result.stdout.strip())
-    return result.stdout
 
 
 def main():

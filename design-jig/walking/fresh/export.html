@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Walking final export</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wght@500&display=swap">
+</head>
+<body>
+  <pre id="out"></pre>
+  <script src="./painter.js"></script>
+  <script src="./states.js"></script>
+  <script src="./worlds.js"></script>
+  <script src="./events.js"></script>
+  <script src="./directions.js"></script>
+  <script>
+  // Renders the approved screens at 320 × 240 and prints them as data URLs
+  // for final/export.py to save. Settings come from final/settings.json.
+  const SHOTS = [["pending", "Maggie"], ["pending", "Martin"], ["apart", "Maggie"], ["holding", "Maggie"],
+    ["syncing", "Maggie"], ["success", "Maggie"], ["goal", "Maggie"], ["large", "Maggie"]];
+  // Options considered and not chosen, saved under final/alternatives/.
+  const ALTERNATIVES = [
+    ["coast-small-lighthouse", "pending", { landmark: "lighthouse" }], ["coast-flag", "goal", { landmark: "flag" }],
+    ["fields", "pending", { world: "fields" }], ["fields-arrival", "goal", { world: "fields" }],
+    ["valley", "pending", { world: "valley" }], ["valley-arrival", "goal", { world: "valley" }],
+    ["coast-solid-sky", "pending", { sky: "solid" }],
+    ["map-paper", "pending", { direction: "map", mapStyle: "paper" }],
+    ["map-night", "pending", { direction: "map", mapStyle: "night" }],
+    ["map-patchwork", "pending", { direction: "map", mapStyle: "patchwork" }],
+    ["status-line-holding", "holding", { events: "status" }], ["status-line-synced", "success", { events: "status" }],
+  ];
+  const settings = fetch("../final/settings.json").then(r => {
+    if (!r.ok) throw new Error("Could not load final/settings.json");
+    return r.json();
+  });
+  Promise.all([settings, document.fonts.load('500 16px "Mona Sans"')]).then(([o, fonts]) => {
+    if (!fonts.length) throw new Error("Mona Sans could not load; no fallback-font images exported.");
+    const lines = SHOTS.map(([state, badge]) => {
+      const canvas = document.createElement("canvas"); canvas.width = 320; canvas.height = 240;
+      window.Directions.paint(canvas, o.direction, window.Walking.model(state, o.holdProgress, badge), { ...o, badge, t: 0 });
+      return `${state}-${badge.toLowerCase()} ${canvas.toDataURL("image/png")}`;
+    }).concat((new URLSearchParams(location.search).has("alternatives") ? ALTERNATIVES : []).map(([name, state, extra]) => {
+      const canvas = document.createElement("canvas"); canvas.width = 320; canvas.height = 240;
+      const p = { ...o, ...extra, badge: "Maggie", t: 0 };
+      window.Directions.paint(canvas, p.direction, window.Walking.model(state, p.holdProgress, p.badge), p);
+      return `alternatives/${name} ${canvas.toDataURL("image/png")}`;
+    }));
+    document.getElementById("out").textContent = lines.join("\n");
+  }).catch(error => { document.getElementById("out").textContent = `Export failed: ${error.message}`; });
+  </script>
+</body>
+</html>

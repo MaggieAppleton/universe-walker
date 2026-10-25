@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Walking badge design review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wght@500&display=swap">
+  <link rel="stylesheet" href="./vendor/dialkit.css">
+  <link rel="stylesheet" href="./jig.css">
+  <link rel="stylesheet" href="./fresh/fresh.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Walking badge / Design review</p>
+      <h1>Worlds and moments</h1>
+      <p>Drawn only with what the badge can draw: antialiased vector shapes, linear gradients and the built-in Mona Sans font, at 320 × 240.</p>
+      <div class="toolbar">
+        <span id="summary"></span>
+        <button id="copy" type="button">Copy settings</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+      <p><a href="./counter.html">Try the live count comparison</a> · <a href="./final/pending-maggie.png">Current design capture</a> · <a href="./README.md">Setup and export</a></p>
+      <nav><a href="#landmark">Destination</a><a href="#worlds">Worlds</a><a href="#moments">Moments</a><a href="#compare">Trail maps</a><a href="#all-states">All states</a></nav>
+    </header>
+    <section id="landmark" class="study-section">
+      <h2 class="section-title">Coast destination</h2>
+      <p>The lighthouse as drawn, half as large again, or swapped for a flag. Choose one in the Landmark dial to use it everywhere.</p>
+      <div class="preview-panel"><div id="landmark-grid" class="compare"></div></div>
+    </section>
+    <section id="worlds" class="study-section">
+      <h2 class="section-title">Worlds</h2>
+      <p>Horizon layout with a shorter landscape. Martin starts at 9,900 steps and Maggie at 0, with a 10,000-step shared goal. Click a world’s name to use it everywhere.</p>
+      <div class="preview-panel"><div id="worlds-grid" class="compare"></div></div>
+    </section>
+    <section id="moments" class="study-section">
+      <h2 class="section-title">Moments take the whole screen</h2>
+      <p>Full-screen loading and confirmation moments, animated. No people; the world dims behind.</p>
+      <div class="preview-panel"><div id="moments-grid" class="compare"></div></div>
+    </section>
+    <section id="compare" class="study-section">
+      <h2 class="section-title">Trail maps</h2>
+      <p>Three map treatments. Click one to use the map layout everywhere below.</p>
+      <div class="preview-panel"><div id="compare-grid" class="compare"></div></div>
+    </section>
+    <section id="all-states" class="study-section">
+      <h2 class="section-title" id="all-title">Every state</h2>
+      <p>All 24 fixtures for the selected direction, both badges side by side.</p>
+      <div class="preview-panel"><div id="states"></div></div>
+    </section>
+    <footer>
+      <output id="values"></output>
+      <p id="message" role="status"></p>
+    </footer>
+  </main>
+  <script src="./vendor/dialkit.js"></script>
+  <script src="./fresh/painter.js"></script>
+  <script src="./fresh/states.js"></script>
+  <script src="./fresh/worlds.js"></script>
+  <script src="./fresh/events.js"></script>
+  <script src="./fresh/directions.js"></script>
+  <script src="./fresh/app.js"></script>
+</body>
+</html>

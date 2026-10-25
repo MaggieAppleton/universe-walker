@@ -1,0 +1,19 @@
+{
+  "goal": 10000,
+  "direction": "horizon",
+  "world": "coast",
+  "landmark": "big",
+  "events": "fullscreen",
+  "sky": "gradient",
+  "big": 70,
+  "small": 14,
+  "title": 29,
+  "trail": 12,
+  "scale": 1,
+  "gap": 24,
+  "partnerAlpha": 0.55,
+  "stride": 0.4,
+  "holdProgress": 0.65,
+  "mapStyle": "paper",
+  "zoom": "1"
+}

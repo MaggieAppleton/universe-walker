@@ -1,0 +1,3 @@
+# Host tools only; the badge uses its installed MicroPython/Badgeware runtime.
+mpremote==1.29.0
+pyserial==3.5
