@@ -17,7 +17,10 @@ function hill(c, points, pen, bottom = 240) {
 
 function lighthouse(c, x, y, lit) {
   if (lit) {
-    c.fillStyle = "rgba(255,226,140,.22)";
+    const beam = c.createLinearGradient(x, 0, x - 80, 0);
+    beam.addColorStop(0, "rgba(255,226,140,1)");
+    beam.addColorStop(1, "rgba(255,226,140,0)");
+    c.fillStyle = beam;
     c.beginPath(); c.moveTo(x, y - 30); c.lineTo(x - 80, y - 44); c.lineTo(x - 80, y - 20); c.fill();
     P.circle(c, x, y - 30, 9, "rgba(255,226,140,.35)");
   }

@@ -13,6 +13,7 @@ sys.path.insert(0, APP_DIR)
 from badgeware import State
 from progress import merge_counts, display_totals
 from steps import StepCounter
+from boost import HoldBoost
 from sync_protocol import GAME_ID
 from diagnostics import capture
 
@@ -25,6 +26,7 @@ if state["game"] != GAME_ID:
 counts = merge_counts({DEVICE_ID: 0}, state["counts"])
 counter = StepCounter(counts[DEVICE_ID])
 last_sync = merge_counts({}, state["last_sync"])
+boost = HoldBoost()
 
 badge.mode(HIRES | VSYNC)
 import walking_ui as ui
@@ -157,6 +159,11 @@ def update_frame():
             if not sensor_failed:
                 print("walking: sensor read failed:", error)
             sensor_failed = True
+    added = boost.update(badge.pressed(BUTTON_UP) or badge.held(BUTTON_UP), badge.ticks)
+    if added:
+        counter.total += added
+        counts[DEVICE_ID] = counter.total
+        dirty = True
     if dirty and time.ticks_diff(now, last_save) >= 2000:
         save_progress()
     status, progress, success_age, success_total = "Sync paused - reopen Walking", None, None, None

@@ -30,6 +30,7 @@ All app paths below are relative to `badge/apps/walking/`.
 | --- | --- |
 | `__init__.py` | Launcher entry point, hardware polling, State persistence, frame loop, cleanup. |
 | `steps.py` | Normalize a raw 16-bit pedometer into a cumulative game count. |
+| `boost.py` | Demo UP-button hold ramp that adds personal steps (frame clock). |
 | `progress.py` | Validate/merge counts and derive confirmed display totals. |
 | `sync_protocol.py` | Hardware-independent STATE/ACK exchange. |
 | `sync_link.py` | Firmware Link/Proximity adapter, retry timing, separation gate. |

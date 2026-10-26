@@ -98,6 +98,7 @@ class BadgeHarness:
         self.now = 0
         self.raw = 0
         self.back = False
+        self.up = False
         self.fail_save = False
         self.radio = NativeRadio()
         self.saved = {"counts": {OWN.hex(): 23, PEER.hex(): 17}, "game": 0x2026,
@@ -142,7 +143,8 @@ class BadgeHarness:
         clock.ticks_diff = ticks_diff
         self.badge = types.SimpleNamespace(mode=lambda mode: None, ticks=0,
                                           caselights=lambda *values: None,
-                                          pressed=lambda key: self.back and key == "back")
+                                          pressed=lambda key: self.back and key == "back",
+                                          held=lambda key: self.up and key == "up")
         self.stack.enter_context(patch.dict(sys.modules, {
             "badgeware": firmware, "machine": machine, "time": clock,
         }))
@@ -155,7 +157,7 @@ class BadgeHarness:
             shape=types.SimpleNamespace(circle=Shape, custom=Shape, rectangle=Shape, rounded_rectangle=Shape),
             brush=types.SimpleNamespace(LINEAR=0, gradient=lambda *args: args),
             image=make_image, vec2=lambda x, y: (x, y), mat3=Transform, rect=Rect,
-            HIRES=1, VSYNC=2, BUTTON_BACK="back",
+            HIRES=1, VSYNC=2, BUTTON_BACK="back", BUTTON_UP="up",
         ))
         self.stack.enter_context(patch("os.chdir", lambda path: None))
         self.path_before = list(sys.path)

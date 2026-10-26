@@ -13,6 +13,11 @@ successful sync. Before the first sync, the number shows your personal steps
 and says they are not synced yet. Only confirmed shared progress lights the
 lighthouse.
 
+For demos, hold **UP** to add steps to your own count. A press adds one step;
+after half a second the count speeds up gradually, reaching about 10,000
+after roughly ten seconds. Releasing starts the slow ramp again, so a brief
+accidental press only adds a few steps.
+
 ## Start here
 
 - [Hardware guide](docs/hardware.md): install, reset demo progress, inspect a
