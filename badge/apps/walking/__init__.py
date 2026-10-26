@@ -29,6 +29,9 @@ last_sync = merge_counts({}, state["last_sync"])
 boost = HoldBoost()
 
 badge.mode(HIRES | VSYNC)
+# Launched straight after the splash, the screen keeps its NON_ZERO fill,
+# which closes the counters in glyphs such as 8 and 9.
+screen.fill_rule = image.EVEN_ODD
 import walking_ui as ui
 ui.set_badge(DEVICE_ID)
 badge.default_clear = ui.BACKGROUND

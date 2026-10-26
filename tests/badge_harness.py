@@ -38,7 +38,7 @@ class Rect:
 
 
 class Surface:
-    pen = antialias = font = None
+    pen = antialias = font = fill_rule = None
     alpha = 255
 
     def __init__(self, width=320, height=240, buffer=None, mode=None):
@@ -74,6 +74,7 @@ def make_image(width, height, buffer=None, mode=None):
 
 
 make_image.X4, make_image.RGB565 = 4, 1
+make_image.EVEN_ODD, make_image.NON_ZERO = 0, 1
 
 
 class NativeRadio:
