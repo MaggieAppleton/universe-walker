@@ -8,6 +8,7 @@ const WARNINGS = {
   "Progress not saved": "Progress not saved",
   "Sync paused - reopen Walking": "Sync paused, reopen Walking",
 };
+const RESET_HINT = "Keep holding to reset", RESET_DONE = "Counts reset to zero";
 const COOLDOWN = ["Move badges apart", "Pull badges apart", "Synced"];
 const RETRY = { "Hold together to retry": true, "Could not sync - try again": false };
 
@@ -27,6 +28,8 @@ function moment(own, team, partner, status, progress, successTotal, prevTeam) {
   else {
     m.phase = "apart";
     if (status in WARNINGS) { m.status = WARNINGS[status]; m.tone = "warn"; }
+    else if (status && status.startsWith(RESET_HINT)) { m.status = status; m.tone = "warn"; }
+    else if (status === RESET_DONE) m.status = status;
   }
   m.newSteps = m.phase === "success" || m.phase === "cooldown" ? 0 : fresh;
   const confirmed = team || 0;

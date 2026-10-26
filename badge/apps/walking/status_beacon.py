@@ -34,6 +34,10 @@ STATUSES = (
     "Sync paused - reopen Walking",
     "Step sensor unavailable",
     "Progress not saved",
+    "Keep holding to reset... 3",
+    "Keep holding to reset... 2",
+    "Keep holding to reset... 1",
+    "Counts reset to zero",
 )
 
 

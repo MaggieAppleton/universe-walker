@@ -17,7 +17,12 @@ For demos, hold **UP** to add steps to your own count. A press adds one step;
 after half a second the count speeds up gradually, reaching about 10,000
 after roughly ten seconds. It stops once your unsynced +N reaches 9,957.
 Releasing starts the slow ramp again, so a brief accidental press only adds a
-few steps.
+few steps. Hold **DOWN** to remove steps with the same ramp; it stops at your
+last synced count, because the partner badge would restore anything lower.
+
+Hold **SELECT** for three seconds to reset this badge's personal and team
+counts to zero, as on first start. The status line counts down while you hold.
+Reset both badges, or the next sync restores the partner's copy of the totals.
 
 ## Start here
 
