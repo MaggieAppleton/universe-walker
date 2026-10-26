@@ -24,6 +24,7 @@ implementation: ask for references and intended behaviour, then compare
 | Count model and confirmed totals | `progress.py` |
 | Plain-Python packet exchange | `sync_protocol.py` |
 | Native BLE lifecycle and frame clocks | `sync_link.py` |
+| Live dashboard status and mirror | `status_beacon.py`, `dashboard/` |
 | Screen model and drawing | `walking_ui.py`, `painter.py`, `coast_scene.py`, `hikers.py`, `moments.py` |
 | Browser model and renderer | `design-jig/walking/fresh/states.js`, `fresh/painter.js` |
 | USB utilities | `tools/` |

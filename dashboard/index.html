@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Universe Walker · live badges</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wght@500&display=swap">
+  <link rel="stylesheet" href="./live.css">
+</head>
+<body>
+  <p id="error" class="error" role="status" hidden></p>
+  <main id="badges" class="badges">
+    <div id="link" class="link" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><i>✓</i></div>
+  </main>
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+  <script src="../design-jig/walking/fresh/painter.js"></script>
+  <script src="../design-jig/walking/fresh/states.js"></script>
+  <script src="../design-jig/walking/fresh/worlds.js"></script>
+  <script src="../design-jig/walking/fresh/events.js"></script>
+  <script src="../design-jig/walking/fresh/directions.js"></script>
+  <script src="./model.js"></script>
+  <script src="./live.js"></script>
+</body>
+</html>

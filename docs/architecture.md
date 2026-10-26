@@ -30,9 +30,11 @@ All app paths below are relative to `badge/apps/walking/`.
 | --- | --- |
 | `__init__.py` | Launcher entry point, hardware polling, State persistence, frame loop, cleanup. |
 | `steps.py` | Normalize a raw 16-bit pedometer into a cumulative game count. |
+| `boost.py` | Demo button holds: UP/DOWN step ramps (unsynced only) and the 3 s SELECT reset (frame clock). |
 | `progress.py` | Validate/merge counts and derive confirmed display totals. |
 | `sync_protocol.py` | Hardware-independent STATE/ACK exchange. |
 | `sync_link.py` | Firmware Link/Proximity adapter, retry timing, separation gate. |
+| `status_beacon.py` | Broadcast the screen's inputs for the live dashboard (optional). |
 | `walking_ui.py` | Translate app state into screen moments and progress. |
 | `painter.py` | Native text metrics, fitted counts, and drawing helpers. |
 | `coast_scene.py`, `hikers.py`, `moments.py` | Landscape, wearers, and full-screen sync/goal moments. |
@@ -80,6 +82,30 @@ continuous background sharing.
 
 These constraints came from physical failures and two-badge retests. Host
 stand-ins cannot establish the firmware's actual radio/separation behaviour.
+
+## Live dashboard status
+
+`status_beacon.py` adds a 29-byte scan response to Link's own pairing
+advert: 16-bit service data `0x5557` holding own/team/partner counts, a status
+index, hold progress and a success flag. That is exactly what
+`walking_ui.model()` needs, so `dashboard/` can redraw the screen. The laptop
+only scans; nothing connects to the badge.
+
+- It never starts advertising on its own. It only re-sends Link's last
+  advert, with the same arguments, when Link is already advertising.
+- It never re-advertises while linking or linked (the firmware reports
+  `in_session` even when idle, so that flag is ignored), and at most every
+  500 ms when the status changes.
+- Any beacon error disables it; pairing carries on unchanged. `on_exit`
+  restores the shared firmware radio.
+- Link stops advertising during an exchange, and one badge's brief success
+  screen is often missed. The page's pair coordinator treats a quiet badge
+  mid-hold as syncing, and shows Synced! on both screens when either badge
+  reports success or a higher team total.
+
+`STATUSES` order is the wire format: append new statuses, never reorder.
+`dashboard/model.js` mirrors `walking_ui.model()`; `tests/test_dashboard.py`
+checks they agree.
 
 ## Two clocks
 

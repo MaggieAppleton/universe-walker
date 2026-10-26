@@ -25,6 +25,9 @@ WARNINGS = {
     "Progress not saved": "Progress not saved",
     "Sync paused - reopen Walking": "Sync paused, reopen Walking",
 }
+# SELECT-hold reset notices; the countdown is amber like other warnings.
+RESET_HINT = "Keep holding to reset"
+RESET_DONE = "Counts reset to zero"
 COOLDOWN = ("Move badges apart", "Pull badges apart", "Synced")
 RETRY = {"Hold together to retry": True, "Could not sync - try again": False}
 
@@ -63,6 +66,10 @@ class Moment:
             self.phase = "apart"
             if status in WARNINGS:
                 self.status, self.tone = WARNINGS[status], "warn"
+            elif status.startswith(RESET_HINT):
+                self.status, self.tone = status, "warn"
+            elif status == RESET_DONE:
+                self.status = status
         self.new_steps = 0 if self.phase in ("success", "cooldown") else fresh
         confirmed = team or 0
         self.shared = min(1, confirmed / GOAL)

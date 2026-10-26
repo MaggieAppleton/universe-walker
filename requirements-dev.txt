@@ -1,3 +1,4 @@
-# Host tools only; the badge uses its installed MicroPython/Badgeware runtime.
+# Host tools only (USB utilities and the live dashboard); the badge uses its installed MicroPython/Badgeware runtime.
 mpremote==1.29.0
 pyserial==3.5
+bleak==3.0.2

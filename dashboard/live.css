@@ -1,0 +1,115 @@
+:root {
+  --ink: #1d2340;
+  --soft: #6a7090;
+  --live: #ffb547;
+  --good: #34b46a;
+  --warn: #d9583f;
+  font-family: "Mona Sans", system-ui, sans-serif;
+  font-weight: 500;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at 50% 30%, #ffffff, #eef0f7 55%, #e2e6f1);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.error {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  margin: 0; padding: 8px 16px; border-radius: 999px;
+  background: #fff1ee; color: var(--warn); font-size: 14px;
+  box-shadow: 0 4px 16px rgba(29, 35, 64, .1);
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  padding: 24px;
+  transition: gap .6s cubic-bezier(.2, .8, .2, 1);
+}
+
+.badge.away { display: none; }
+body.solo .link { display: none; }
+
+.badge { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.badge h2 { margin: 0; font-size: 20px; font-weight: 500; }
+
+/* A plain dark bezel around the 320×240 screen, shown at 2×. */
+.bezel {
+  padding: 22px;
+  border-radius: 34px;
+  background: linear-gradient(160deg, #2a2f45, #12151f);
+  box-shadow: 0 22px 50px rgba(29, 35, 64, .28), inset 0 1px 0 rgba(255, 255, 255, .08);
+  transition: box-shadow .5s;
+}
+
+canvas:not(.confetti) {
+  display: block;
+  width: min(640px, 40vw);
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  background: #151d3b;
+  transition: opacity .4s, filter .4s;
+}
+
+.badge.stale canvas { opacity: .45; filter: grayscale(.7); }
+
+.meta { font-size: 13px; color: var(--soft); display: flex; gap: 8px; align-items: center; min-height: 18px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #b9bdd0; }
+.badge.live .dot { background: var(--good); box-shadow: 0 0 6px var(--good); }
+.badge.stale .dot { background: var(--warn); }
+
+/* The two screens draw together while they sync, joined by a live link. */
+.link {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  width: 0; height: 40px; margin: 0 -16px; opacity: 0;
+  margin-bottom: 32px;
+  transition: width .6s cubic-bezier(.2, .8, .2, 1), opacity .4s;
+}
+.link span { width: 10px; height: 10px; border-radius: 50%; background: var(--live); opacity: .25; }
+.link i {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--good); color: #fff; font-style: normal; font-size: 22px;
+  transition: transform .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+
+body.together .badges { gap: 20px; }
+body.together .link { width: 96px; opacity: 1; margin: 0 0 32px; }
+body.together .link span { animation: travel 1s infinite ease-in-out; }
+.link span:nth-child(2) { animation-delay: .12s !important; }
+.link span:nth-child(3) { animation-delay: .24s !important; }
+.link span:nth-child(4) { animation-delay: .36s !important; }
+.link span:nth-child(5) { animation-delay: .48s !important; }
+body.together .bezel { box-shadow: 0 0 0 4px rgba(255, 181, 71, .55), 0 22px 50px rgba(29, 35, 64, .28); }
+
+body.synced .link span { background: var(--good); animation: none; opacity: .9; }
+body.synced .link i { transform: translate(-50%, -50%) scale(1); }
+body.synced .bezel { box-shadow: 0 0 0 5px rgba(52, 180, 106, .7), 0 0 60px rgba(52, 180, 106, .35), 0 22px 50px rgba(29, 35, 64, .28); }
+
+@keyframes travel { 0%, 100% { opacity: .2; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.15); } }
+
+.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; }
+
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .badges { flex-direction: column; }
+  canvas:not(.confetti) { width: min(640px, 86vw); }
+  .link { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badges, .link, .bezel { transition: none; }
+  body.together .link span { animation: none; opacity: .9; }
+}

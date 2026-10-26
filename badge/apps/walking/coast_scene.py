@@ -41,13 +41,28 @@ def _hill(c, points, pen):
     P.poly(c, [(path.pts[0][0], 240)] + path.pts + [(path.pts[-1][0], 240)], pen)
 
 
+_beam = None
+
+
+def _beam_brush():
+    # Fully opaque at the lamp, fading to clear at the far end. Built once:
+    # a gradient's lookup table is the costly part.
+    global _beam
+    if _beam is None:
+        length = 80 * LIGHT_SCALE
+        stops = [(0.0, P.rgb("#ffe28c", 0)), (1.0, P.rgb("#ffe28c"))]
+        _beam = brush.gradient(brush.LINEAR, 0, 0.5, 1, 0.5, stops,
+                               mat3().translate(LIGHT_X - length, 0).scale(length, 1))
+    return _beam
+
+
 def lighthouse(c, lit):
     def at(points):
         return [(LIGHT_X + x * LIGHT_SCALE, LIGHT_Y + y * LIGHT_SCALE) for x, y in points]
 
     s = LIGHT_SCALE
     if lit:
-        P.poly(c, at([(0, -30), (-80, -44), (-80, -20)]), P.rgb("#ffe28c", 0.22))
+        P.poly(c, at([(0, -30), (-80, -44), (-80, -20)]), _beam_brush())
         P.circle(c, LIGHT_X, LIGHT_Y - 30 * s, 9 * s, P.rgb("#ffe28c", 0.35))
     P.poly(c, at([(-6, 0), (6, 0), (4, -25), (-4, -25)]), P.rgb("#f4f1ea"))
     P.poly(c, at([(-5.4, -8), (5.4, -8), (5, -14), (-5, -14)]), P.rgb("#d6453d"))

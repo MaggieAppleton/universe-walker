@@ -201,7 +201,8 @@ const DIRECTIONS = {
 
 function paint(canvas, direction, m, o) {
   const c = canvas.getContext("2d");
-  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, P.W, P.H);
+  const k = o.pixelRatio || 1;
+  c.setTransform(k, 0, 0, k, 0, 0); c.clearRect(0, 0, P.W, P.H);
   if (m.phase === "fatal") return fatal(c, o);
   const full = o.events === "fullscreen", event = full && window.Events.EVENTS.includes(m.phase), arrived = full && m.id === "goal";
   DIRECTIONS[direction].draw(c, m, { ...o, quietHud: event || arrived, quietPeople: event });
