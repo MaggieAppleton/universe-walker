@@ -64,22 +64,52 @@ These use fixture data and never write badge progress.
 
 ### Live badge dashboard
 
-`dashboard/` mirrors both badges' screens side by side from their Bluetooth
-adverts. Install `bleak` (in `requirements-dev.txt`), then run from a terminal
-that has Bluetooth permission (on macOS, Terminal.app):
+`dashboard/` mirrors both badges' screens side by side, live, in a browser.
+Each badge running Walking adds its screen state to its Bluetooth advert
+(`status_beacon.py`); the server only listens, so it never pairs with or
+slows down the badges.
+
+**1. Install the dependencies** (once). The server needs Python 3.10+ and
+`bleak` from `requirements-dev.txt`:
 
 ```sh
-.venv/bin/python dashboard/server.py           # real badges
-.venv/bin/python dashboard/server.py --demo    # simulated pair, no Bluetooth
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
 ```
 
-Open <http://127.0.0.1:8765/>. Maggie's badge starts alone in the centre;
-Martin's flies in from the side when it is first heard. Press **1** for just
-Maggie (Martin then returns on **2**, or after being out of range for 10 s)
-and **2** for both. While the badges pair, the screens draw
-together with a linking animation. A confirmed sync shows the same total on
-both screens and a full-window confetti burst. Outside a sync, a badge greys
-out after 10 s without an advert.
+**2. Start the server** from the repository root:
+
+```sh
+.venv/bin/python dashboard/server.py           # real badges over Bluetooth
+.venv/bin/python dashboard/server.py --demo    # simulated pair, no Bluetooth or badges
+```
+
+| Option | Default | Use |
+| --- | --- | --- |
+| `--port N` | `8765` | Serve on another port, e.g. run `--demo` on 8766 alongside the real one. |
+| `--host H` | `127.0.0.1` | Use `0.0.0.0` to open the page from another device on the network. |
+| `--demo` | off | Animate two simulated badges through walking and syncing. |
+
+On macOS, run it from Terminal.app (or another terminal that has been granted
+Bluetooth access in **System Settings → Privacy & Security → Bluetooth**).
+The first run asks for permission; without it the scanner finds nothing.
+Stop the server with **Ctrl+C**.
+
+**3. Open <http://127.0.0.1:8765/>** and switch both badges on with Walking
+running (it opens automatically after the splash on our demo badges). The page
+updates about twice a second; reloading it picks up dashboard code changes
+without restarting the server.
+
+Maggie's badge starts alone in the centre; Martin's flies in from the side
+when it is first heard. Press **1** for just Maggie (Martin then returns on
+**2**, or after being out of range for 10 s) and **2** for both. While the
+badges pair, the screens draw together with a linking animation. A confirmed
+sync shows the same total on both screens and a full-window confetti burst.
+Outside a sync, a badge greys out after 10 s without an advert.
+
+If a badge never appears, check that Walking is open on it (the menu and other
+apps don't advertise) and that the terminal has Bluetooth permission; try
+`--demo` to confirm the page itself works.
 
 ## Repository
 
