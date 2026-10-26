@@ -92,12 +92,15 @@ only scans; nothing connects to the badge.
 
 - It never starts advertising on its own. It only re-sends Link's last
   advert, with the same arguments, when Link is already advertising.
-- It never re-advertises while linking, linked or in a radio session, and at
-  most every 500 ms when the status changes.
+- It never re-advertises while linking or linked (the firmware reports
+  `in_session` even when idle, so that flag is ignored), and at most every
+  500 ms when the status changes.
 - Any beacon error disables it; pairing carries on unchanged. `on_exit`
   restores the shared firmware radio.
-- Link stops advertising during an exchange, so the dashboard holds the last
-  status until the badges separate.
+- Link stops advertising during an exchange, and one badge's brief success
+  screen is often missed. The page's pair coordinator treats a quiet badge
+  mid-hold as syncing, and shows Synced! on both screens when either badge
+  reports success or a higher team total.
 
 `STATUSES` order is the wire format: append new statuses, never reorder.
 `dashboard/model.js` mirrors `walking_ui.model()`; `tests/test_dashboard.py`

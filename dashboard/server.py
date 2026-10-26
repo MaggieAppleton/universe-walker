@@ -88,7 +88,7 @@ def run_scanner(hub):
 
 
 class Demo:
-    """Two simulated badges walking and syncing on a 36 s loop."""
+    """Two simulated badges walking and syncing on a 36 s loop, quiet while linked."""
 
     IDS = ("f95119f417c67d7e", "79469e7227b64f70")
     PERIOD = 36
@@ -112,9 +112,11 @@ class Demo:
             if 12 <= phase < 16:
                 status, progress = "Hold steady", min(1, (phase - 12) / 3)
             elif 16 <= phase < 18:
-                status = "Syncing..."
+                continue  # Linked badges stop advertising, as on hardware.
             elif 18 <= phase < 22:
-                status, success = "Synced", team
+                # Often only one badge's brief success screen is heard.
+                status = "Synced"
+                success = team if i == 0 or phase < 18.6 else None
             elif 22 <= phase < 26:
                 status = "Move badges apart"
             self.seq += 1

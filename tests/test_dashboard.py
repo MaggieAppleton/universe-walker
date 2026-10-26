@@ -66,6 +66,29 @@ console.log(JSON.stringify(rows));
         self.assertTrue(any(row["arrival"] for row in python), "Sequence covers arrival")
 
 
+class PairCoordinatorTests(unittest.TestCase):
+    def test_one_confirmed_total_celebrates_on_both_screens_once(self):
+        result = subprocess.run(["node", "-e", """
+const assert = require('node:assert/strict');
+const { coordinator, CELEBRATE_MS, QUIET_MS } = require('./dashboard/model.js');
+const pair = coordinator();
+const badge = (id, team, status, extra = {}) => ({ id, own: 100, team, partner: 50, status, progress: null, success: false, ...extra });
+// Recorded on hardware: Maggie's success is heard, Martin's only as a new total.
+assert.equal(pair.observe([badge('m', 297, 'Hold steady', { progress: 0.4 }), badge('n', 297, 'Hold badges back to back')], 0), false, 'page load is not a sync');
+const holding = badge('m', 297, 'Hold steady', { progress: 0.4 });
+assert.equal(pair.inputs(holding, 200, 100).status, 'Hold steady');
+assert.equal(pair.inputs(holding, QUIET_MS + 100, 100).status, 'Syncing...', 'quiet mid-hold means linked');
+assert.equal(pair.observe([badge('m', 376, 'Synced', { success: true }), badge('n', 297, 'Hold badges back to back')], 1000), true);
+assert.equal(pair.inputs(badge('n', 297, 'Hold steady', { progress: 1 }), 3000, 1100).successTotal, 376, 'partner shows the same success');
+assert.equal(pair.observe([badge('m', 376, 'Synced'), badge('n', 376, 'Synced')], 1500), false, 'one burst per sync');
+assert.equal(pair.celebrating(1000 + CELEBRATE_MS + 1), false);
+assert.equal(pair.inputs(badge('n', 376, 'Move badges apart'), 0, 1000 + CELEBRATE_MS + 1).successTotal, null);
+assert.equal(pair.observe([badge('n', 0, 'Hold badges back to back')], 9000), false, 'a reset is not a sync');
+assert.equal(pair.observe([badge('n', 40, 'Move badges apart')], 9500), true, 'a rise without a heard success still counts');
+"""], cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
 class ServerTests(unittest.TestCase):
     def test_decodes_only_walking_status_from_service_data(self):
         payload = sb.pack("f95119f417c67d7e", 3, 12, 40, 17, "Hold steady", 0.5)

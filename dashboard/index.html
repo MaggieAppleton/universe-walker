@@ -9,11 +9,11 @@
   <link rel="stylesheet" href="./live.css">
 </head>
 <body>
-  <header>
-    <h1>Universe Walker</h1>
-    <p id="scanner" class="scanner">Connecting to the dashboard server…</p>
-  </header>
-  <main id="badges" class="badges"></main>
+  <p id="error" class="error" role="status" hidden></p>
+  <main id="badges" class="badges">
+    <div id="link" class="link" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><i>✓</i></div>
+  </main>
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
   <script src="../design-jig/walking/fresh/painter.js"></script>
   <script src="../design-jig/walking/fresh/states.js"></script>
   <script src="../design-jig/walking/fresh/worlds.js"></script>

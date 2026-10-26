@@ -64,7 +64,44 @@ function forPaint(m) {
   return { ...m, id, phase: m.arrival ? "apart" : m.phase };
 }
 
-const api = { GOAL, WEARERS, moment, tracker, forPaint };
+// Badges stop advertising while linked, so the page fills the gap: a badge
+// that goes quiet mid-hold is syncing, and one confirmed total shows as a
+// shared success on both screens at once.
+const QUIET_MS = 900, CELEBRATE_MS = 4500, PAIRING = ["holding", "connecting", "syncing"];
+
+function coordinator() {
+  const teams = new Map();
+  let party = null, parties = 0;
+  return {
+    // Feed each snapshot; returns true when a new shared sync begins.
+    observe(badges, now) {
+      let started = false;
+      for (const b of badges) {
+        const known = teams.has(b.id), prev = teams.get(b.id);
+        const rose = known && b.team !== null && (prev === null || b.team > prev);
+        if ((b.success || rose) && b.team !== null && (!party || party.total !== b.team)) {
+          party = { total: b.team, until: now + CELEBRATE_MS, n: ++parties };
+          started = true;
+        }
+        if (b.success && party && party.total === b.team) party.until = Math.max(party.until, now + 1500);
+        teams.set(b.id, b.team);
+      }
+      return started;
+    },
+    celebrating(now) { return party !== null && now < party.until; },
+    // Screen inputs for one badge, given how long since it was last heard.
+    inputs(b, quietMs, now) {
+      const raw = { own: b.own, team: b.team, partner: b.partner, status: b.status,
+        progress: b.progress, successTotal: b.success ? b.team : null };
+      if (this.celebrating(now)) return { ...raw, status: "Synced", progress: null, successTotal: party.total };
+      if (b.progress !== null && b.progress !== undefined && quietMs > QUIET_MS)
+        return { ...raw, status: "Syncing...", progress: null };
+      return raw;
+    },
+  };
+}
+
+const api = { GOAL, WEARERS, PAIRING, QUIET_MS, CELEBRATE_MS, moment, tracker, forPaint, coordinator };
 if (typeof module !== "undefined") module.exports = api;
 if (typeof window !== "undefined") window.LiveModel = api;
 })();
