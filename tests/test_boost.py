@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "badge" / "apps" / "walking"))
-from boost import HoldBoost  # noqa: E402
+from boost import HoldBoost, LIMIT, room  # noqa: E402
 
 from badge_harness import BadgeHarness, OWN  # noqa: E402
 
@@ -35,7 +35,24 @@ class HoldBoostTests(unittest.TestCase):
         self.assertEqual(hold(0.4, boost=boost), 1)
 
 
+class LimitTests(unittest.TestCase):
+    def test_room_counts_only_unsynced_steps(self):
+        self.assertEqual(room(100, 100), 9957)
+        self.assertEqual(room(100 + 9957, 100), 0)
+        self.assertEqual(room(20000, 100), 0)
+
+
 class HoldUpInAppTests(unittest.TestCase):
+    def test_holding_up_stops_at_the_unsynced_limit(self):
+        with BadgeHarness() as badge:
+            badge.frame(0)
+            badge.up = True
+            for now in range(0, 20001, 50):
+                badge.frame(now)
+            badge.up = False
+            badge.frame(23000)
+            self.assertEqual(badge.saved["counts"][OWN.hex()], 23 + LIMIT)
+
     def test_holding_up_adds_saved_personal_steps(self):
         with BadgeHarness() as badge:
             badge.frame(0)

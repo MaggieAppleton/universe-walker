@@ -4,6 +4,13 @@ DELAY_MS = 500
 # Steps after t seconds of ramp are RATE * t**3: 10 at 1 s, 80 at 2 s,
 # 1,250 at 5 s and 10,000 at 10 s, so a brief accidental press adds very few.
 RATE = 10
+# The button may raise your unsynced steps (the yellow +N) to at most this.
+LIMIT = 9957
+
+
+def room(own, synced_own):
+    """How many more steps UP may add before the next sync."""
+    return max(0, LIMIT - (own - synced_own))
 
 
 class HoldBoost:

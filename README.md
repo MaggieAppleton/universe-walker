@@ -15,8 +15,9 @@ lighthouse.
 
 For demos, hold **UP** to add steps to your own count. A press adds one step;
 after half a second the count speeds up gradually, reaching about 10,000
-after roughly ten seconds. Releasing starts the slow ramp again, so a brief
-accidental press only adds a few steps.
+after roughly ten seconds. It stops once your unsynced +N reaches 9,957.
+Releasing starts the slow ramp again, so a brief accidental press only adds a
+few steps.
 
 ## Start here
 

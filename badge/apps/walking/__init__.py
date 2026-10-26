@@ -13,7 +13,7 @@ sys.path.insert(0, APP_DIR)
 from badgeware import State
 from progress import merge_counts, display_totals
 from steps import StepCounter
-from boost import HoldBoost
+from boost import HoldBoost, room
 from sync_protocol import GAME_ID
 from diagnostics import capture
 
@@ -160,6 +160,7 @@ def update_frame():
                 print("walking: sensor read failed:", error)
             sensor_failed = True
     added = boost.update(badge.pressed(BUTTON_UP) or badge.held(BUTTON_UP), badge.ticks)
+    added = min(added, room(counter.total, last_sync.get(DEVICE_ID, 0)))
     if added:
         counter.total += added
         counts[DEVICE_ID] = counter.total
