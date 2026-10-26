@@ -106,14 +106,14 @@ function draw(c, m, o) {
     badges(c, 4 + k * 8);
     arrow(c, CX - 26 - k * 8, CY, -1, AMBER);
     arrow(c, CX + 26 + k * 8, CY, 1, AMBER);
-    return words(c, o, "Move badges apart", AMBER, `${P.fmt(m.team)} shared steps saved`);
+    return words(c, o, "Move badges apart", AMBER, m.team === null ? "No shared steps yet" : `${P.fmt(m.team)} shared steps saved`);
   }
   if (m.phase === "retry") {
     const lost = m.id === "timeout";
     ring(c, TOP + 0.5, TOP + TURN - 0.5, WARN);
     badges(c, 6, WARN);
     return words(c, o, lost ? "Lost connection" : "Couldn’t sync", WARN,
-      lost ? "Hold together to retry" : "Move apart, then try again", `Still ${P.fmt(m.team)} shared steps`);
+      lost ? "Hold together to retry" : "Move apart, then try again", m.team === null ? "No shared steps yet" : `Still ${P.fmt(m.team)} shared steps`);
   }
 }
 

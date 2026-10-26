@@ -1,0 +1,63 @@
+:root {
+  color-scheme: dark;
+  --ink: #ebeeff;
+  --soft: rgba(235, 238, 255, .6);
+  --good: #7ee2a8;
+  --warn: #ff9b85;
+  font-family: "Mona Sans", system-ui, sans-serif;
+  font-weight: 500;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at top, #1d2650, #0a0e20 70%);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header { text-align: center; padding: 28px 16px 8px; }
+h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: .02em; }
+.scanner { margin: 6px 0 0; color: var(--soft); font-size: 14px; }
+.scanner.error { color: var(--warn); }
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 48px;
+  padding: 24px;
+}
+
+.badge { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.badge h2 { margin: 0; font-size: 18px; font-weight: 500; }
+
+/* A plain dark bezel around the 320×240 screen, shown at 2×. */
+.bezel {
+  padding: 22px;
+  border-radius: 34px;
+  background: linear-gradient(160deg, #2a2f45, #12151f);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+canvas {
+  display: block;
+  width: min(640px, 42vw);
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  background: #151d3b;
+  transition: opacity .4s, filter .4s;
+}
+
+.badge.stale canvas { opacity: .45; filter: grayscale(.7); }
+
+.meta { font-size: 13px; color: var(--soft); display: flex; gap: 10px; align-items: center; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--soft); }
+.badge.live .dot { background: var(--good); box-shadow: 0 0 8px var(--good); }
+.badge.stale .dot { background: var(--warn); }
+
+@media (max-width: 900px) { canvas { width: min(640px, 88vw); } }

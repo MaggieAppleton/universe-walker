@@ -51,11 +51,26 @@ Open [the walking preview](http://127.0.0.1:8765/design-jig/walking/fresh.html)
 or [the count tuning jig](http://127.0.0.1:8765/design-jig/walking/counter.html).
 These use fixture data and never write badge progress.
 
+### Live badge dashboard
+
+`dashboard/` mirrors both badges' screens side by side from their Bluetooth
+adverts. Install `bleak` (in `requirements-dev.txt`), then run from a terminal
+that has Bluetooth permission (on macOS, Terminal.app):
+
+```sh
+.venv/bin/python dashboard/server.py           # real badges
+.venv/bin/python dashboard/server.py --demo    # simulated pair, no Bluetooth
+```
+
+Open <http://127.0.0.1:8765/>. A badge greys out after 10 s without an
+advert, which is normal while two badges are mid-sync.
+
 ## Repository
 
 | Path | Purpose |
 | --- | --- |
 | `badge/apps/walking/` | Installable MicroPython app; uses the badge's existing firmware runtime. |
+| `dashboard/` | Live two-badge screen mirror: BLE scanner, server and page. |
 | `design-jig/walking/` | Plain HTML/JavaScript previews, approved renders, and vendored Dial Kit. |
 | `tests/` | Python unit/integration tests, virtual badge harness, and Node fixture checks. |
 | `tools/` | USB setup and diagnostics. |

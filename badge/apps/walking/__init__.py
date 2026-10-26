@@ -86,16 +86,53 @@ def confirm_sync(snapshot):
     store_progress(merge_counts(counts, snapshot), snapshot)
 
 
+# Optional live-dashboard status; pairing works the same without it. It must
+# wrap the radio before Link exists, because Link advertises when created.
+beacon = None
+try:
+    from badgeware import link as badgelink
+    from status_beacon import Beacon
+    beacon = Beacon(badgelink.radio, None, DEVICE_ID)
+except Exception as error:
+    print("walking: status beacon unavailable:", error)
+
 sync = None
 try:
     from sync_link import BadgeSync
     sync = BadgeSync(DEVICE_ID, save_sync, confirm_sync)
 except Exception as error:
     capture("sync setup", error)
+if beacon is not None:
+    if sync is None:
+        beacon.close()
+        beacon = None
+    else:
+        beacon.link = sync.link
+
+
+def stop_beacon():
+    global beacon
+    active, beacon = beacon, None
+    if active is not None:
+        try:
+            active.close()
+        except Exception as error:
+            print("walking: status beacon close failed:", error)
+
+
+def publish_status(*screen):
+    if beacon is None:
+        return
+    try:
+        beacon.publish(*screen)
+    except Exception as error:
+        print("walking: status beacon stopped:", error)
+        stop_beacon()
 
 
 def stop_sync():
     global sync
+    stop_beacon()
     active, sync = sync, None
     if active is not None:
         try:
@@ -139,6 +176,8 @@ def update_frame():
     elif save_failed:
         status = "Progress not saved"
     own, team, partner = display_totals(DEVICE_ID, counts, last_sync)
+    publish_status(own, team, partner, status, progress,
+                   success_total if success_age is not None else None)
     ui.draw(own, team, partner, status, progress, success_age, success_total)
 
 

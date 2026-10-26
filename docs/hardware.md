@@ -100,6 +100,8 @@ publication/ACK, and confirmed progress saves only after matching ACK.
 5. Press HOME, reopen both apps, and check personal/confirmed counts persist.
 6. Check the large white/yellow row on the real screen, including long
    counts: no clipping, a shared baseline, and both parts shrinking together.
+7. With `dashboard/server.py` running, repeat a hold and check both mirrors
+   follow the badges and that pairing behaves as before.
 
 Earlier step/persistence and repeated-sync builds passed reported physical
 checks on these two badges. The latest count-row/font calibration needs its
