@@ -38,6 +38,9 @@ body {
   transition: gap .6s cubic-bezier(.2, .8, .2, 1);
 }
 
+.badge.away { display: none; }
+body.solo .link { display: none; }
+
 .badge { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .badge h2 { margin: 0; font-size: 20px; font-weight: 500; }
 

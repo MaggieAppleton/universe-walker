@@ -68,7 +68,10 @@ that has Bluetooth permission (on macOS, Terminal.app):
 .venv/bin/python dashboard/server.py --demo    # simulated pair, no Bluetooth
 ```
 
-Open <http://127.0.0.1:8765/>. While the badges pair, the screens draw
+Open <http://127.0.0.1:8765/>. Maggie's badge starts alone in the centre;
+Martin's flies in from the side when it is first heard. Press **1** for just
+Maggie (Martin then returns on **2**, or after being out of range for 10 s)
+and **2** for both. While the badges pair, the screens draw
 together with a linking animation. A confirmed sync shows the same total on
 both screens and a full-window confetti burst. Outside a sync, a badge greys
 out after 10 s without an advert.

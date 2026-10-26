@@ -7,6 +7,9 @@ const SETTINGS = { goal: 10000, direction: "horizon", world: "coast", landmark: 
   sky: "gradient", big: 70, small: 14, title: 29, trail: 12, scale: 1, gap: 24, partnerAlpha: 0.55,
   stride: 0.4, holdProgress: 0.65, mapStyle: "paper" };
 const STALE_S = 10;
+// Maggie's badge is always on screen; any other badge flies in when heard.
+const HOST = Object.keys(WEARERS)[0];
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
 
 const root = document.getElementById("badges"), link = document.getElementById("link");
 const errorLine = document.getElementById("error");
@@ -21,12 +24,65 @@ function card(id) {
     <div class="meta"><span class="dot"></span><span class="text">Waiting for badge…</span></div>`;
   el.querySelector("h2").textContent = name;
   el.querySelector("canvas").setAttribute("aria-label", `${name}'s badge screen`);
-  const c = { id, name, el, canvas: el.querySelector("canvas"), text: el.querySelector(".text"), model: tracker(), status: null };
+  const shown = id === HOST;
+  if (!shown) el.classList.add("away");
+  const c = { id, name, el, canvas: el.querySelector("canvas"), text: el.querySelector(".text"), model: tracker(), status: null,
+    shown, held: false, motion: null };
   cards.set(id, c);
   const order = [...cards.values()].sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
   order.forEach((x, i) => { root.append(x.el); if (i === 0) root.append(link); });
   return c;
 }
+
+// FLIP: record where the visible cards are, change the layout, then slide
+// each card from its old place to its new one.
+function layout(change) {
+  const before = new Map([...cards.values()].filter(c => c.shown).map(c => [c, c.el.getBoundingClientRect().left]));
+  change();
+  document.body.classList.toggle("solo", ![...cards.values()].some(c => c.shown && c.id !== HOST));
+  if (REDUCED.matches) return;
+  for (const [c, left] of before) {
+    const dx = left - c.el.getBoundingClientRect().left;
+    if (c.shown && Math.abs(dx) > 1) c.el.animate([{ transform: `translateX(${dx}px)` }, { transform: "none" }],
+      { duration: 800, easing: "cubic-bezier(.2, .8, .2, 1)" });
+  }
+}
+
+function arrive(c) {
+  if (c.shown) return;
+  c.held = false;
+  if (c.motion) c.motion.cancel();
+  layout(() => { c.shown = true; c.el.classList.remove("away"); });
+  if (REDUCED.matches) return;
+  const from = innerWidth - c.el.getBoundingClientRect().left;
+  c.motion = c.el.animate([
+    { transform: `translateX(${from}px) rotate(6deg)`, opacity: 0 },
+    { transform: "translateX(-14px) rotate(-1deg)", opacity: 1, offset: 0.78 },
+    { transform: "none", opacity: 1 },
+  ], { duration: 950, easing: "cubic-bezier(.25, .8, .3, 1)" });
+}
+
+function leave(c) {
+  c.held = true;
+  if (!c.shown) return;
+  c.shown = false;
+  if (c.motion) c.motion.cancel();
+  const gone = () => { if (!c.shown) layout(() => c.el.classList.add("away")); };
+  if (REDUCED.matches) return gone();
+  const to = innerWidth - c.el.getBoundingClientRect().left;
+  c.motion = c.el.animate([{ transform: "none", opacity: 1 }, { transform: `translateX(${to}px) rotate(6deg)`, opacity: 0 }],
+    { duration: 450, easing: "cubic-bezier(.5, 0, .8, .4)", fill: "forwards" });
+  c.motion.onfinish = () => { c.motion.cancel(); c.motion = null; gone(); };
+}
+
+const guests = () => [...cards.values()].filter(c => c.id !== HOST);
+
+// 1: just Maggie. 2: Maggie and Martin.
+addEventListener("keydown", e => {
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "1") guests().forEach(leave);
+  if (e.key === "2") guests().forEach(arrive);
+});
 
 function rank(id) { const i = Object.keys(WEARERS).indexOf(id); return i < 0 ? 99 : i; }
 
@@ -42,6 +98,7 @@ function render(t) {
   const now = Date.now() / 1000 - clockSkew, wall = Date.now();
   const phases = [];
   for (const c of cards.values()) {
+    if (!c.shown && !c.motion) continue;
     const s = c.status;
     if (!s) { waiting(c); continue; }
     const age = Math.max(0, now - s.seen), stale = age > STALE_S;
@@ -83,7 +140,7 @@ const confetti = (() => {
       spin: (Math.random() - 0.5) * 0.3, r: Math.random() * 6, wobble: Math.random() * 6, colour: COLOURS[i % COLOURS.length] });
   }
   function pop() {
-    const sources = [...cards.values()].map(c => c.canvas.getBoundingClientRect());
+    const sources = [...cards.values()].filter(c => c.shown).map(c => c.canvas.getBoundingClientRect());
     if (!sources.length) sources.push({ left: innerWidth / 2, width: 0, top: innerHeight / 2, height: 0 });
     for (const r of sources) for (let i = 0; i < 120; i++) {
       const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = 9 + Math.random() * 13;
@@ -119,10 +176,17 @@ events.onmessage = e => {
   clockSkew = Date.now() / 1000 - snap.now;
   scanner(snap.scanner);
   if (pair.observe(snap.badges, Date.now())) confetti.burst();
-  for (const b of snap.badges) card(b.id).status = b;
+  for (const b of snap.badges) {
+    const c = card(b.id), fresh = snap.now - b.seen <= STALE_S;
+    c.status = b;
+    // After pressing 1, a guest returns by itself only once it has been away.
+    if (!fresh) c.held = false;
+    else if (c.id !== HOST && !c.held) arrive(c);
+  }
 };
 events.onerror = () => { errorLine.textContent = "Lost the dashboard server, retrying…"; errorLine.hidden = false; };
 events.onopen = () => { errorLine.hidden = true; };
-window.LiveDashboard = { confetti };
+document.body.classList.add("solo");
+window.LiveDashboard = { confetti, arrive, leave, cards };
 document.fonts.ready.then(() => requestAnimationFrame(render));
 })();
